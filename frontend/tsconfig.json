@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "module": "none",
+        "strict": false,
+        "isolatedModules": false,
+        "skipLibCheck": true,
+        "types": [],
+    },
+    "include": [
+        "scripts/**/*.ts"
+    ]
+}

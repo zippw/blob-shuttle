@@ -1,0 +1,23 @@
+@use 'sass:color';
+
+$bg: #0b0d0f;
+$red: color.adjust(#dc2626, $saturation: -30%, $lightness: 10%);
+$transparentize_bg_10: rgba(11, 13, 15, 0.9);
+$transparentize_bg_20: rgba(11, 13, 15, 0.8);
+$transparentize_bg_50: rgba(11, 13, 15, 0.5);
+$bg_light: #121316;
+$transparentize_bg_light_50: rgba(18, 19, 22, 0.5);
+$muted: #4a4d53;
+$transparentize_muted_20: rgba(74, 77, 83, 0.8);
+$transparentize_muted_50: rgba(74, 77, 83, 0.5);
+$transparentize_muted_80: rgba(74, 77, 83, 0.2);
+$transparentize_muted_95: rgba(74, 77, 83, 0.05);
+$text: #ffffff;
+$transparentize_text_70: rgba(255, 255, 255, 0.3);
+$purple: #9b6cf0;
+$transparentize_purple_80: rgba(155, 108, 240, 0.2);
+$purple_light: #c7b2f2;
+$transparentize_purple_light_90: rgba(199, 178, 242, 0.1);
+$transparentize_purple_light_50: rgba(199, 178, 242, 0.5);
+$purple_lighter: #efe6ff;
+$orange: #fcc79e;

@@ -1,0 +1,15 @@
+@mixin box-spacing($args...) {
+  margin: $args;
+
+  $t: nth($args, 1);
+  $r: $t;
+  $b: $t;
+  $l: $t;
+
+  @if length($args) > 1 { $r: nth($args, 2); $l: nth($args, 2); }
+  @if length($args) > 2 { $b: nth($args, 3); }
+  @if length($args) > 3 { $l: nth($args, 4); }
+
+  width: calc(100% - #{$l + $r});
+  height: calc(100% - #{$t + $b});
+}

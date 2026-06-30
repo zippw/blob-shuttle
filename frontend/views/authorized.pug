@@ -1,0 +1,54 @@
+doctype html
+html
+    head
+        title Test
+        style
+            :css(path="frontend/styles/main.scss")
+
+    body(class=authorized ? 'authorized' : '')
+        .main-wrapper
+            main
+
+                .form-wrapper.create-block
+                    form#create
+
+                        input#files_input.drop-zone__input(multiple type="file" tabindex="0" disabled=!authorized)
+                        label#file_dropzone.drop-zone(for="files_input")
+                            h1 Drop files here, or click to choose
+                            h2 Max total size: #[span(data-bytes="1073741824")]
+                        .upload-box
+                            button#upload_files_btn.main(disabled data-content-transition)
+                                span.content-old Upload
+                                span.content-new.is-hidden
+                .sep
+
+                .form-wrapper.reveal-block
+                    form#reveal
+                        h1 Enter Vault ID
+                        h2 to download files
+                        .code-container
+                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
+                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
+                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
+                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
+                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
+                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
+                        small.error X
+
+                    .file-container#files_container
+
+                if (!authorized)
+                    .form-wrapper.login-block
+                        form#auth
+                            h1 Enter Passcode
+                            h2 to use this application
+                            .input-grp
+                                input#passcode.main(type="password" placeholder="Passcode")
+                                button#passcode_btn.main(type="submit" data-wavy) Enter
+                            small.error X
+
+            .background #[canvas#nebulaCanvas]
+
+
+    script
+        :js(path="frontend/scripts/main.ts")
