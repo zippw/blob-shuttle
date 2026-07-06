@@ -1,7 +1,9 @@
-frontend/scripts/nebula.ts
 frontend/dist
 node_modules
 package-lock.json
 trash
 dist
 .env
+/*.js
+/src/views/**/*
+project.md

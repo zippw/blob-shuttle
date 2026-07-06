@@ -1,41 +1,75 @@
 doctype html
-html
+html(lang="en")
     head
-        title Test
+        meta(charset="UTF-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1.0")
+        title BLOB-SHUTTLE
+        link(href="https://cdn.jsdelivr.net/npm/@exuanbo/file-icons-js@latest/dist/css/file-icons.min.css" rel="stylesheet")
         style
             :css(path="frontend/styles/main.scss")
 
-    body(class=authorized ? 'authorized' : '')
-        .main-wrapper
-            main
+    body(
+        class=authorized ? 'authorized' : ''
+        data-vault-id=sessionContext.invite.is_valid ? sessionContext.invite.vault_id : ''
+    )
+        .main-wrapper()
 
+            main
                 .form-wrapper.create-block
                     form#create
 
-                        input#files_input.drop-zone__input(multiple type="file" tabindex="0" disabled=!authorized)
-                        label#file_dropzone.drop-zone(for="files_input")
+                        input#files_input.drop-zone__input(
+                            accept
+                            multiple type="file"
+                            disabled=!authorized
+                            tabindex=authorized ? "0" : "-1"
+                            data-max-file-count=consts.MAX_FILE_COUNT
+                            data-max-file-size=consts.MAX_FILE_SIZE
+                        )
+                        label#files_dropzone.drop-zone(for="files_input")
                             h1 Drop files here, or click to choose
-                            h2 Max total size: #[span(data-bytes="1073741824")]
+                            h2 Max file size: #{consts.MAX_FILE_SIZE_PARSED}. Maximum #{consts.MAX_FILE_COUNT} files.
+                            small.error X
                         .upload-box
-                            button#upload_files_btn.main(disabled data-content-transition)
+                            button#upload_files_btn.main(
+                                disabled=true
+                                tabindex=!authorized
+                                data-content-transition
+                            )
                                 span.content-old Upload
                                 span.content-new.is-hidden
                 .sep
 
                 .form-wrapper.reveal-block
+
                     form#reveal
                         h1 Enter Vault ID
                         h2 to download files
-                        .code-container
-                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
-                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
-                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
-                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
-                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
-                            input.code-input.main(type="text" maxlength="1" autocomplete="off" disabled=!authorized)
+                        .code-container#vault_id_pincodeinput
+                            -const val = sessionContext.invite.is_valid ? sessionContext.invite.vault_id.split('').slice(0, 6) : new Array(6).fill(null)
+                            each v in val
+                                input.code-input.main.error_animation(type="text" maxlength="1" autocomplete="off" disabled=!authorized value=v)
+
                         small.error X
 
-                    .file-container#files_container
+                    //- .file-container#files_container.scrollable
+                    .file-container-wrapper
+                        .nav
+                            .left
+                                code#keypath
+                            .right
+                                button.main#share(
+                                    disabled=!authorized
+                                    tabindex=authorized ? "0" : "-1"
+                                        data-content-transition
+                                )
+                                    span.content-old Share
+                                    span.content-new.is-hidden
+
+                        .file-container#files_container.scrollable
+
+
+
 
                 if (!authorized)
                     .form-wrapper.login-block
@@ -43,12 +77,16 @@ html
                             h1 Enter Passcode
                             h2 to use this application
                             .input-grp
-                                input#passcode.main(type="password" placeholder="Passcode")
+                                input#passcode.main.error_animation(type="password" placeholder="Passcode")
                                 button#passcode_btn.main(type="submit" data-wavy) Enter
                             small.error X
 
             .background #[canvas#nebulaCanvas]
 
 
+    script(src="https://cdn.jsdelivr.net/npm/@exuanbo/file-icons-js@latest/dist/js/file-icons.esm.min.js" type="module")
+    script(type="module").
+        import icons from 'https://cdn.jsdelivr.net/npm/@exuanbo/file-icons-js@latest/dist/js/file-icons.esm.min.js'
+        window.getClass = icons.getClass;
     script
         :js(path="frontend/scripts/main.ts")

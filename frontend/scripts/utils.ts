@@ -1,23 +1,6 @@
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 
-
-function formatBytes(bytes: number, decimals: number = 2) {
-    if (!+bytes) return '0 Bytes'
-
-    const k = 1024
-    const dm = decimals < 0 ? 0 : decimals
-    const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
-}
-
-(document.querySelectorAll('[data-bytes]') as NodeListOf<HTMLElement>).forEach(el => el.innerText = formatBytes(Number(el.getAttribute('data-bytes')), 0) + ' ');
-
-
-
 document.querySelectorAll('[data-wavy]').forEach(btn => {
     btn.addEventListener('click', function (e) {
         const rect = this.getBoundingClientRect();
@@ -33,13 +16,94 @@ document.querySelectorAll('[data-wavy]').forEach(btn => {
     });
 });
 
-
-function setQueryParam(key: string, value: string) {
+function setQueryParam(key: string, value: string | null) {
     const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set(key, value);
-    const newUrl = window.location.pathname + '?' + urlParams.toString();
 
-    window.history.replaceState(null, '', newUrl);
+    value === null ? urlParams.delete(key) : urlParams.set(key, value);
+
+    const queryString = urlParams.toString();
+    const newUrl = queryString
+        ? `${window.location.pathname}?${queryString}`
+        : window.location.pathname;
+
+    window.history.replaceState(null, '', newUrl + window.location.hash);
 }
 
-export { delay, formatBytes, setQueryParam }
+
+
+
+
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch (err) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            return true;
+        } catch (fallbackErr) {
+            document.body.removeChild(textarea);
+            console.error('[copyToClipboard] failed', fallbackErr);
+            return false;
+        }
+    }
+}
+
+
+
+
+async function changeBtnContent(
+    btn: HTMLButtonElement,
+    content = 'new content',
+    duration = 400
+) {
+    const oldSpan = btn.querySelector('.content-old') as HTMLElement;
+    const newSpan = btn.querySelector('.content-new') as HTMLElement;
+
+    if (!oldSpan || !newSpan) return;
+
+    btn.setAttribute('data-content-transition', '');
+
+    const startRect = oldSpan.getBoundingClientRect();
+    oldSpan.style.width = `${startRect.width}px`;
+    oldSpan.style.height = `${startRect.height}px`;
+
+    newSpan.innerHTML = content;
+    const { width, height } = newSpan.getBoundingClientRect();
+
+    oldSpan.style.transitionDuration = `${duration}ms`;
+
+    oldSpan.offsetHeight;
+    btn.classList.add('is-animating');
+
+    oldSpan.style.width = `${width}px`;
+    oldSpan.style.height = `${height}px`;
+
+    await new Promise(resolve => setTimeout(resolve, duration));
+
+    oldSpan.innerHTML = content;
+
+    btn.classList.remove('is-animating');
+    oldSpan.style.cssText = '';
+    newSpan.innerHTML = '';
+}
+
+
+function setProgress(percent: number) {
+    let ringElement = document.querySelector('button span.content-old .progress-ring') as HTMLElement;
+    if (!ringElement) return;
+    const validatedPercent = Math.max(0, Math.min(1, percent));
+    ringElement.style.setProperty('--prog', `${validatedPercent * 360}deg`);
+}
+
+export { delay, setQueryParam, copyToClipboard, changeBtnContent, setProgress }

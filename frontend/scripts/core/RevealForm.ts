@@ -1,111 +1,138 @@
+// forms/RevealForm.ts
 import { AuthService } from "../AuthService";
+import ShareInvite from "../components/ShareInvite";
 import { updateActiveForm } from "../main";
 import { delay } from "../utils";
+import { formatBytes } from "../../../src/shared/utils";
 import { BaseForm } from "./base";
 
-export default class RevealForm extends BaseForm {
-    public readonly inputs = document.querySelectorAll('.code-input') as NodeListOf<HTMLInputElement>;
-    private readonly formEl = document.getElementById('reveal') as HTMLFormElement;
-    private readonly filesContainer = document.getElementById('files_container') as HTMLElement;
+import PinCodeInput from "../components/PinCodeInput";
 
-    private isBusy: boolean = false;
+import { ApiError } from "../../../src/shared/ApiError";
+import ClientApi from "../ClientApi";
+
+import { } from '../../../src/shared/schema';
+import { validateVaultId } from '../../../src/shared/validators';
+
+declare function getClass(filename: string, options?: any): Promise<string | null>;
+
+export default class RevealForm extends BaseForm {
+    private readonly input: PinCodeInput;
+    private readonly filesContainer: HTMLElement;
+    private readonly errorEl: HTMLElement;
+    private readonly pathEl: HTMLSpanElement;
 
     constructor() {
         super();
 
-        this.bind();
-    }
+        this.input = new PinCodeInput(document.getElementById('vault_id_pincodeinput'), {
+            length: 6,
+            pattern: /^[a-zA-Z0-9]{1}$/,
+            onComplete: (code) => { this.onFullFilled(code); }
+        });
 
-    public disableForm(toDisable: boolean = true) {
-        this.inputs.forEach(input => input.disabled = toDisable);
+        this.formEl = document.getElementById('reveal') as HTMLFormElement;
+        this.filesContainer = document.getElementById('files_container') as HTMLElement;
+        this.pathEl = this.filesContainer.parentElement.querySelector('.nav #keypath') as HTMLSpanElement;
+        this.errorEl = this.formEl.querySelector('small.error') as HTMLElement;
+
+        console.log('[RevealForm] Initializing components...');
+        this.bind();
+        if (ShareInvite.current_vault_id) this.autoFill();
     }
 
     public get ac() {
-        let hasFocusedEls = false;
-        if (document.activeElement instanceof HTMLInputElement && [...this.inputs].includes(document.activeElement)) hasFocusedEls = true;
+        const hasFocusedEls = document.activeElement instanceof HTMLInputElement
+            && this.input.isFocused
 
-        return { hasFocusedEls, hasFileListRendered: this.isExpanded, isBusy: this.isBusy }
+        return {
+            hasFocusedEls,
+            hasFileListRendered: this.isExpanded,
+            isBusy: this.isBusy
+        };
     }
 
     private get isExpanded(): boolean {
-        return this.filesContainer.classList.contains('expanded');
+        return this.filesContainer.parentElement.classList.contains('expanded');
     }
 
-    bind() {
-        this.inputs.forEach((input, index) => {
-            input.addEventListener('input', (e) => {
-                const val = input.value;
 
-                if (!/^[a-zA-Z0-9]$/.test(val)) {
-                    input.value = '';
-                    return;
-                }
+    public autoFill() {
+        // tries getting vault_id from the DOM data attribute (rendered by server) first, then fallback to memory
+        const targetVaultId = ShareInvite.current_vault_id
 
-                if (index < this.inputs.length - 1) this.inputs[index + 1].focus();
+        try {
+            const vault_id = validateVaultId(targetVaultId);
+            console.log(`[RevealForm] auto-filling inputs with vault_id: ${vault_id}`);
+            this.input.value = vault_id;
+        } catch (error) {
+            console.debug(`[RevealForm] autoFill skipped. Reason: invalid or empty vault_id context.`);
+        }
+    }
 
-                const fullCode = Array.from(this.inputs).map(inp => inp.value).join('');
-                if (fullCode.length === this.inputs.length) this.onFullFilled(fullCode);
-            });
+    protected onStateUpdate(): void {
+        console.debug(`[RevealForm] updating layout state. isBusy=${this._isBusy}`);
+        this.input.disabled = this._isBusy || this.isExpanded;
+    }
 
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && !input.value && index > 0) this.inputs[index - 1].focus();
-            });
-
-            input.addEventListener('paste', (e) => {
-                e.preventDefault();
-                if (!e.clipboardData) return;
-                const data = e.clipboardData.getData('text').trim();
-                if (!/^[a-zA-Z0-9]{6}$/.test(data)) return;
-
-                this.inputs.forEach((inp, idx) => inp.value = data[idx]);
-                this.inputs[this.inputs.length - 1].focus();
-
-                this.onFullFilled(data);
-            });
+    public bind() {
+        document.addEventListener('vault:uploaded', async (e: Event) => {
+            const { vault_id } = (e as CustomEvent).detail;
+            console.log(`[RevealForm] vault:uploaded vault_id=${vault_id}`);
+            try {
+                // this.formEl.reset();
+                this.onFullFilled(vault_id);
+            } catch (error) {
+                console.warn(`[RevealForm] Ignored vault:uploaded event due to validation failure.`);
+            }
         });
     }
 
-    async onFullFilled(value: string) {
-        this.isBusy = true;
-        this.filesContainer.classList.remove('expanded');
-        this.disableForm(true);
-        updateActiveForm(); // all lines above affects priority
 
+    private async onFullFilled(vault_id: string) {
+        console.log(`[RevealForm] Full code entered. Requesting S3 file list for vault: ${vault_id}`);
+
+        this.isBusy = true; // all lines above affects priority
+        // this.filesContainer.parentElement.classList.remove('expanded');
         this.formEl.classList.remove('error');
+        updateActiveForm();
 
-        const r = await fetch(window.location.pathname + `?path=reveal-vault`, {
-            method: 'POST',
-            body: JSON.stringify({ passcode: AuthService.passcode, vault_id: value }),
-            headers: { 'Content-Type': 'application/json' }
-        });
+        try {
+            const files = await ClientApi.revealVault({ vault_id, auth: AuthService.auth });
+            console.log(`[RevealForm] Successfully received ${files.length} links from S3.`);
 
-        await delay(1000);
+            this.filesContainer.innerHTML = '';
+            const cardPromises = files.map(async (file: { url: string; name: string; size: number }) => {
+                const iconClass = await getClass(file.name, { color: true }) || 'default-icon';
 
-        if (!r.ok) {
-            const errMaxLen = 50;
-            const err = await r.text();
-            console.error(err);
-            this.formEl.querySelector('small.error').textContent = err.slice(0, errMaxLen) + (err.length > errMaxLen ? '...' : '');
+                return `<a class="file" href="${file.url}" target="_blank" download="${file.name}">
+                    <div class="name">
+                        <span class="file-icon ${iconClass}"></span>
+                        <span>${file.name}</span>
+                    </div>
+                    <div class="size">${formatBytes(file.size, 1)}</div>
+                </a>`;
+            });
+
+            const allCardsHtmlArray = await Promise.all(cardPromises);
+            this.filesContainer.innerHTML = allCardsHtmlArray.join('');
+
+            ShareInvite.current_vault_id = vault_id;
+            this.pathEl.innerHTML = `Vault ID: ${vault_id}`;
+            this.filesContainer.parentElement.classList.add('expanded');
+        } catch (error) {
+            console.error(error);
+
+            if (error instanceof ApiError) {
+                this.errorEl.textContent = error.error;
+            } else this.errorEl.textContent = 'Unexpected Error';
+
             this.formEl.classList.add('error');
             await delay(400);
 
-            this.disableForm(false);
             this.formEl.reset();
-            this.inputs[0].focus();
             this.isBusy = false;
-            updateActiveForm();
-            return
+            this.input.focus();
         }
-
-        const files = await r.json();
-        this.filesContainer.innerHTML = '';
-        files.forEach(file => {
-            this.filesContainer.innerHTML += `<a class="file" href="${file.url}" download="${file.name}">${file.name}</a>`;
-        });
-
-        this.disableForm(false);
-        this.filesContainer.classList.add('expanded');
-        this.isBusy = false;
-        updateActiveForm();
     }
 }

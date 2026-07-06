@@ -1,19 +1,46 @@
 @use 'sass:color';
 @use './vars/colors.scss' as *;
+@use './vars/file-colors.scss' as *;
 @use './vars/easings.scss' as *;
+
+.scrollable {
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: $bg_light;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: $muted;
+
+        &:hover {
+            background: $purple_light
+        }
+    }
+}
+
+body {
+
+    *::selection {
+        background: $purple_light;
+        color: $bg
+    }
+}
 
 
 form {
     h1 {
         font-size: 1.5rem;
-        line-height: 100%;
-        margin-bottom: 8px;
+        line-height: 120%;
+        margin-bottom: .3rem;
     }
 
     h2 {
         color: $muted;
         font-size: 1rem;
-        margin-bottom: 24px;
+        margin-bottom: 1.5rem;
         font-weight: 400;
     }
 
@@ -22,7 +49,7 @@ form {
         color: $red;
         pointer-events: none;
         opacity: 0;
-        padding: 0 48px;
+        padding: 0 3rem;
         width: 100%;
         text-align: center;
         transform: translateY(100%);
@@ -38,7 +65,7 @@ form {
             opacity: 1;
         }
 
-        input {
+        .error_animation {
             animation: length_warning .4s 1;
 
             @keyframes length_warning {
@@ -107,11 +134,10 @@ button[data-wavy] {
 button.main {
     font-size: 1rem;
     padding: 0.75rem 1rem;
-    background: color.scale($bg_light, $alpha: -20%);
-    backdrop-filter: blur(4px);
+    background: $bg_light;
     border: 1px solid color.scale($muted, $alpha: -50%);
     color: $text;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     outline: 0;
     line-height: 100%;
     transition:
@@ -179,7 +205,7 @@ button[data-content-transition] {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px; 
+        gap: 8px;
         white-space: nowrap;
         vertical-align: middle;
         overflow: hidden;
@@ -206,13 +232,13 @@ button[data-content-transition] {
 
 
 input.main {
-    padding: 16px 16px;
+    padding: 1rem;
     text-align: left;
     background: $bg_light;
     outline: 0;
     border: 2px solid transparent;
     color: $text;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     font-size: 1rem;
     font-weight: 500;
     transition:

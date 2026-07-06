@@ -1,6 +1,7 @@
 @use 'sass:color';
 
 $bg: #0b0d0f;
+$bg_dark: color.adjust($bg, $lightness: -4%);
 $red: color.adjust(#dc2626, $saturation: -30%, $lightness: 10%);
 $transparentize_bg_10: rgba(11, 13, 15, 0.9);
 $transparentize_bg_20: rgba(11, 13, 15, 0.8);

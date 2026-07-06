@@ -1,31 +1,86 @@
-
 import LoginForm from "./core/LoginForm";
 import RevealForm from "./core/RevealForm";
 import CreateForm from "./core/CreateForm";
 import { BaseForm } from "./core/base";
+import { animate, resizeCanvas, CONFIG, canvas } from "./nebula";
+import { AuthService } from "./AuthService";
+import ShareInvite from "./components/ShareInvite";
+import { changeBtnContent, copyToClipboard } from "./utils";
+import ClientApi from "./ClientApi";
 
+let isThrottling = false;
 
-let forms: BaseForm[] = [];
-document.addEventListener('DOMContentLoaded', async () => {
-    forms = [new CreateForm(), new RevealForm()];
-    if (!document.body.classList.contains('authorized')) new LoginForm(() => {
-        forms[0].disableForm(false);
-        forms[1].disableForm(false);
-    });
+// Handle canvas responsive sizing and animations based on device orientation
+window.addEventListener('resize', () => {
+    if (isThrottling) return;
 
-    document.addEventListener('focusin', (e) => updateActiveForm());
-    document.addEventListener('focusout', (e) => updateActiveForm());
+    isThrottling = true;
+    canvas.classList.add('hidden');
 
-    // test
-    // const r = await fetch(window.location.pathname + '?path=delete-vault', { method: 'DELETE' });
+    setTimeout(() => {
+        const isPortrait = window.matchMedia("screen and (orientation:portrait)").matches;
+
+        CONFIG.paused = isPortrait;
+        canvas.classList.toggle('hidden', isPortrait);
+
+        resizeCanvas();
+        isThrottling = false;
+    }, 200);
 });
 
+resizeCanvas();
+animate();
+
+let forms: BaseForm[] = [];
+
+/**
+ * Initializes target application forms once session clearance is confirmed
+ */
+function initializeApp(): void {
+    new ShareInvite(
+        document.getElementById('share') as HTMLButtonElement,
+        document.body.getAttribute('data-vault-id')
+    );
+
+    forms = [new CreateForm(), new RevealForm()];
+    document.body.classList.add('authorized');
+
+    const shareBtn = document.getElementById('share');
+    if (shareBtn) {
+        shareBtn.removeAttribute('disabled');
+        shareBtn.setAttribute('tabindex', '0');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Global action trigger to generate secure sharing layout tokens
+
+
+    document.addEventListener('focusin', () => updateActiveForm());
+    document.addEventListener('focusout', () => updateActiveForm());
+
+    // Check if the server pre-authorized the session view markup on cold render
+    const isServerAuthorized = document.body.classList.contains('authorized');
+
+    if (isServerAuthorized) {
+        initializeApp();
+        return;
+    }
+
+    // Launch standalone blocker modal if manual password validation is required
+    new LoginForm(() => {
+        initializeApp();
+        forms.forEach(form => form.activateForm());
+    });
+});
+
+
 const formWrapperEls = document.querySelectorAll('main .form-wrapper.create-block, main .form-wrapper.reveal-block') as NodeListOf<HTMLElement>;
+let lastPriority = null;
 const updateActiveForm = () => {
     if (!forms.length) return; // not yet initialized, doesn't matter much
 
     let priority = new Array(forms.length).fill(0);
-    let activeFormIndex = -1;
 
     if (forms[0].ac.hasFilesChosen) priority[0]++;
 
@@ -48,11 +103,74 @@ const updateActiveForm = () => {
     const maxPriority = Math.max(...priority);
     const avg = priority.reduce((a, c) => a + c, 0) / priority.length;
 
-    formWrapperEls.forEach((form, i) => {
-        const isWinner = priority[i] === maxPriority && maxPriority > 0;
+    if (lastPriority !== priority) {
+        console.debug('priority changed: CreateForm', priority[0], '/', priority[1], 'RevealForm')
+        lastPriority = priority
 
-        form.classList.toggle('active', avg === priority[0] ? false : isWinner)
-    });
+        formWrapperEls.forEach((form, i) => {
+            const isWinner = priority[i] === maxPriority && maxPriority > 0;
+
+            form.classList.toggle('active', avg === priority[0] ? false : isWinner)
+        });
+    }
 }
 
-export { updateActiveForm }
+export { updateActiveForm };
+
+
+
+
+
+
+
+
+
+
+
+
+
+// let forms: BaseForm[] = [];
+// function initializeApp() {
+//     forms = [new CreateForm(), new RevealForm()];
+//     document.body.classList.add('authorized');
+
+//     const shareBtn = document.getElementById('share');
+//     if (shareBtn) {
+//         shareBtn.removeAttribute('disabled');
+//         shareBtn.setAttribute('tabindex', '0');
+//     }
+// }
+
+// document.addEventListener('DOMContentLoaded', async () => {
+//     document.getElementById('share').addEventListener('click', async () => {
+//         console.log('clicked')
+//         const r = await fetch(`${window.location.pathname}?path=create-invite`, {
+//             method: 'POST',
+//             body: JSON.stringify({ auth: AuthService.auth, vault_id: ShareInvite.current_vault_id }),
+//             headers: { 'Content-Type': 'application/json' }
+//         });
+
+//         console.log(await r.text());
+//     });
+
+//     document.addEventListener('focusin', (e) => updateActiveForm());
+//     document.addEventListener('focusout', (e) => updateActiveForm());
+
+
+
+//     const isServerAuthorized = document.body.classList.contains('authorized');
+
+//     if (isServerAuthorized) return initializeApp();
+
+//     new LoginForm(() => {
+//         initializeApp();
+
+//         forms.forEach(form => form.activateForm());
+//     });
+
+//     // test
+//     // const r = await fetch(window.location.pathname + '?path=delete-vault', { method: 'DELETE' });
+// });
+
+
+// export { updateActiveForm }

@@ -1,0 +1,71 @@
+@use "sass:color";
+
+/*============================================================================*
+	FILE ICONS PALETTE (Space & Sequoia Isolated)
+/*============================================================================*/
+
+$file-color-purple:        #9b6cf0;
+$file-color-purple-light:  #c7b2f2;
+$file-color-orange:        #fcc79e;
+$file-color-green:         #7ee787;
+$file-color-pink:          #f58ee0;
+$file-color-red:           #b43c44;
+$file-color-blue:          #0055ff;
+$file-color-yellow:        #e6d1b2;
+$file-color-cyan:          #5ce1e6;
+$file-color-grey:          #707585;
+$file-color-maroon:        #a06a50;
+$file-color-teal:          #48c0b0;
+$file-color-khaki:         #c9bfa3;
+$file-color-silver:        #b0b5c0;
+
+$file-adjust-tone: 15%;
+
+
+/*============================================================================*
+	COMPILER MIXIN
+/*============================================================================*/
+
+@mixin file-generate-classes($name, $base-color) {
+    .#{$name}-color:before        { color: $base-color; }
+    .medium-#{$name}:before       { color: $base-color; }
+    .light-#{$name}:before        { color: color.adjust($base-color, $lightness: $file-adjust-tone); }
+    .dark-#{$name}:before         { color: color.adjust($base-color, $lightness: -$file-adjust-tone); }
+}
+
+
+/*============================================================================*
+	ALL REQUIRED CSS CLASSES FOR FILE-ICONS LIB
+/*============================================================================*/
+
+@include file-generate-classes("purple", $file-color-purple);
+@include file-generate-classes("purple-light", $file-color-purple-light);
+@include file-generate-classes("orange", $file-color-orange);
+@include file-generate-classes("green", $file-color-green);
+@include file-generate-classes("pink", $file-color-pink);
+@include file-generate-classes("red", $file-color-red);
+@include file-generate-classes("blue", $file-color-blue);
+@include file-generate-classes("yellow", $file-color-yellow);
+@include file-generate-classes("cyan", $file-color-cyan);
+@include file-generate-classes("grey", $file-color-grey);
+
+@include file-generate-classes("maroon", $file-color-maroon);
+@include file-generate-classes("teal", $file-color-teal);
+@include file-generate-classes("khaki", $file-color-khaki);
+@include file-generate-classes("silver", $file-color-silver);
+
+
+/*============================================================================*
+	HOVER FIXES
+/*============================================================================*/
+
+.file {
+    &:hover {
+        span[class*="-color"]:before,
+        span[class*="light-"]:before,
+        span[class*="medium-"]:before,
+        span[class*="dark-"]:before {
+            color: inherit !important; 
+        }
+    }
+}

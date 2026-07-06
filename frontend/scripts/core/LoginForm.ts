@@ -1,75 +1,99 @@
-import { BaseForm } from "./base";
+import { ApiError } from "../../../src/shared/ApiError";
 import { AuthService } from "../AuthService";
+import ShareInvite from "../components/ShareInvite";
+import ClientApi from "../ClientApi";
+import { setQueryParam } from "../utils";
 
-export default class LoginForm extends BaseForm {
-    private readonly passcode_input = document.getElementById('passcode') as HTMLInputElement;
-    private readonly passcode_btn = document.getElementById('passcode_btn') as HTMLButtonElement;
-    private readonly loginForm = document.getElementById('auth') as HTMLFormElement;
-    private readonly error_el = this.loginForm.querySelector('small.error') as HTMLElement;
+export default class LoginForm {
+    private readonly passcode_input: HTMLInputElement;
+    private readonly passcode_btn: HTMLButtonElement;
+    private readonly loginForm: HTMLFormElement;
+    private readonly error_el: HTMLElement;
     private readonly onLogin: () => void;
 
     constructor(onLogin = () => { }) {
-        super();
-
         this.onLogin = onLogin;
+
+        this.loginForm = document.getElementById('auth') as HTMLFormElement;
+        this.passcode_input = document.getElementById('passcode') as HTMLInputElement;
+        this.passcode_btn = document.getElementById('passcode_btn') as HTMLButtonElement;
+        this.error_el = this.loginForm.querySelector('small.error') as HTMLElement;
+
+        // if the server already authorized this session (e.g. valid invite link with a password embedded)
+        if (document.body.classList.contains('authorized')) {
+            console.debug('[LoginForm] application already authorized by server. Skipping LoginForm init.');
+            return;
+        }
+
+        console.log('[LoginForm] init');
         this.bind();
         this.autoLogin();
     }
 
-    // login form is standalone form
-    get ac() { return {}; }
-
     public disableForm(toDisable: boolean): void {
+        console.debug(`[LoginForm] setting inputs disabled state to: ${toDisable}`);
         this.passcode_btn.disabled = toDisable;
         this.passcode_input.disabled = toDisable;
     }
 
+    /**
+     * Performs automatic sign-in if a passcode is cached in localStorage or local memory
+     */
     private autoLogin(): void {
-        const cached = AuthService.passcode;
-        if (cached) {
-            this.passcode_input.value = cached;
+        if ('passcode' in AuthService.auth && AuthService.auth.passcode !== undefined) {
+            const cachedPasscode = AuthService.auth.passcode;
+            console.debug('[LoginForm] attempting auto login');
+            this.passcode_input.value = cachedPasscode;
             this.loginForm.dispatchEvent(new Event('submit', { cancelable: true }));
         }
     }
 
-    bind() {
+    private bind(): void {
+        window.addEventListener('popstate', () => window.location.reload());
+
         this.loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             this.loginForm.classList.remove('error');
             this.disableForm(true);
 
-            const isAutoSubmit = !!AuthService.passcode;
-
             try {
-                if (!this.passcode_input.value.length) throw new Error('Empty field');
+                if (!this.passcode_input.value.length) throw new ApiError({ error: 'Empty field', type: 'CLIENT' });
 
                 const passcode = String(this.passcode_input.value);
-                const r = await fetch(window.location.pathname + '?path=check-auth', {
-                    method: 'POST',
-                    body: JSON.stringify({ passcode }),
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                console.debug('[LoginForm] sending check-auth...', { passcode });
 
-                if (!r.ok) throw new Error(await r.text());
+                AuthService._passcode = passcode;
+                const { cache_allowed } = await ClientApi.checkAuth({ auth: AuthService.auth });
 
-                AuthService.save(passcode);
+                console.debug('[LoginForm] check-auth OK');
+
+                ShareInvite.current_vault_id = document.body.getAttribute('data-current_vault_id');
+
+                if (cache_allowed) AuthService.save(passcode);
+
 
                 this.disableForm(true);
-                setTimeout(() => this.loginForm.remove(), 1000);
+
                 document.body.classList.add('authorized');
                 this.onLogin();
+
+                setTimeout(() => {
+                    this.loginForm.remove();
+                    console.debug('[LoginForm] removed from DOM');
+                }, 1000);
+
             } catch (error) {
-                const err = error instanceof Error ? error.message : String(error);
+                console.error(error);
+
+                if (error instanceof ApiError) {
+                    this.error_el.innerText = error.error;
+                } else this.error_el.innerText = 'Unexpected Error';
 
                 AuthService.clear();
-
                 this.disableForm(false);
-                this.error_el.innerText = err.slice(0, 50) + (err.length > 50 ? '...' : '');
                 this.passcode_input.focus();
                 this.passcode_input.value = '';
-                this.loginForm.classList.add('error')
-
-                return console.error(err);
+                this.loginForm.classList.add('error');
             }
         });
     }
