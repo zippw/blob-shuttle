@@ -7,7 +7,19 @@ import * as consts from './shared/constants';
 import { verifySessionAuthority } from './auth';
 import { StructuredApiErr } from './shared/schema';
 import { SessionContext, sessionStorage } from './session';
+import rpm_run from './ratelimit/setup';
 
+import path from 'node:path';
+import fs from 'node:fs';
+
+const MIME_TYPES: Record<string, string> = {
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.js': 'application/javascript',
+    '.json': 'application/json'
+};
 
 export const handler: Handler.Http = async (event, context) => {
     try {
@@ -36,13 +48,42 @@ export const handler: Handler.Http = async (event, context) => {
 
         return sessionStorage.run(sessionContext, async () => {
             try {
-
-
                 console.log(`${method} ?path=${query.path || ''}. Auth=${authorized}`, sessionContext.invite);
 
+                /* rate limitting */
+                if (process.env.NODE_ENV !== 'development' && consts.MAX_RPM !== -1) await rpm_run(context as any);
+
+                /* static logic (pwa purpose) */
+                if (consts.ENABLE_STATIC && query.path === 'static' && query.file) {
+                    const filePath = path.join(__dirname, 'static', query.file);
+                    const notFoundErr: StructuredApiErr = { error: 'Not Found.', details: `File doesn't exist`, type: 'NOTFOUND' }
+                    if (!fs.existsSync(filePath)) return { statusCode: 404, body: JSON.stringify(notFoundErr) }
+
+                    const ext = path.extname(filePath).toLowerCase();
+                    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+                    const file = await fs.readFileSync(filePath);
+
+                    return {
+                        statusCode: 200,
+                        body: file.toString('base64'),
+                        isBase64Encoded: true,
+                        headers: {
+                            'Content-Type': contentType,
+                            ...consts.STATIC_CACHE_CONTROL
+                                ? { 'Cache-Control': consts.STATIC_CACHE_CONTROL }
+                                : {}
+                        }
+                    }
+                }
+
+
+                /* main */
                 if (method === 'GET') return {
                     statusCode: 200, body: await renderFileRuntime('./views/authorized.js', { authorized, consts, sessionContext }),
-                    headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+                    headers: {
+                        'Content-Type': 'text/html; charset=UTF-8',
+                        'Content-Security-Policy': 'worker-src \'self\' blob: data:;'
+                    }
                 }
 
                 if (!authorized) {
@@ -79,12 +120,13 @@ export const handler: Handler.Http = async (event, context) => {
 import { ApiError } from './shared/ApiError';
 function formatServerErrorResponse(err: unknown) {
     if (err instanceof ApiError) {
-        console.warn(`[Server ${err.type}]: ${err.error}`);
+        console.error(`[Server ${err.type}]: ${err.error}`);
 
         const codes: Record<string, number> = {
             'VALIDATION': 400,
             'UNAUTHORIZED': 401,
-            'NOTFOUND': 404
+            'NOTFOUND': 404,
+            'UNEXPECTED': 500
         }
 
         let statusCode: number = 500;
@@ -95,7 +137,7 @@ function formatServerErrorResponse(err: unknown) {
         return {
             statusCode,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: err.error, details: err.details, type: err.type })
+            body: JSON.stringify({ error: err.error, type: err.type })
         };
     }
 

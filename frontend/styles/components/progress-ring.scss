@@ -1,0 +1,15 @@
+@use '../vars/colors.scss' as *;
+
+.progress-ring {
+    --prog: 0deg;
+
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    background-image: conic-gradient(#38fc59 var(--prog), $muted var(--prog));
+
+    -webkit-mask: radial-gradient(transparent 55%, #000 56%);
+    mask: radial-gradient(transparent 55%, #000 56%);
+}

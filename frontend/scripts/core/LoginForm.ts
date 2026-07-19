@@ -3,6 +3,7 @@ import { AuthService } from "../AuthService";
 import ShareInvite from "../components/ShareInvite";
 import ClientApi from "../ClientApi";
 import { setQueryParam } from "../utils";
+import { validatePasscode } from "../../../src/shared/validators";
 
 export default class LoginForm {
     private readonly passcode_input: HTMLInputElement;
@@ -21,11 +22,11 @@ export default class LoginForm {
 
         // if the server already authorized this session (e.g. valid invite link with a password embedded)
         if (document.body.classList.contains('authorized')) {
-            console.debug('[LoginForm] application already authorized by server. Skipping LoginForm init.');
+            console.debug('[LoginForm] app already authorized by server. Skipping LoginForm init.');
             return;
         }
 
-        console.log('[LoginForm] init');
+        console.debug('[LoginForm] init');
         this.bind();
         this.autoLogin();
     }
@@ -39,12 +40,59 @@ export default class LoginForm {
     /**
      * Performs automatic sign-in if a passcode is cached in localStorage or local memory
      */
-    private autoLogin(): void {
-        if ('passcode' in AuthService.auth && AuthService.auth.passcode !== undefined) {
-            const cachedPasscode = AuthService.auth.passcode;
+    private async autoLogin(): Promise<void> {
+        const authData = await AuthService.getAuth();
+        if ('passcode' in authData && authData.passcode !== undefined) {
             console.debug('[LoginForm] attempting auto login');
-            this.passcode_input.value = cachedPasscode;
-            this.loginForm.dispatchEvent(new Event('submit', { cancelable: true }));
+            this.passcode_input.value = '********';
+            this.onSubmit(false)
+        }
+    }
+
+    private async onSubmit(isManual: boolean = false) {
+        this.loginForm.classList.remove('error');
+        this.disableForm(true);
+
+        let passcode: string;
+        try {
+            if (isManual) {
+                console.debug('[LoginForm] manual input detected');
+                if (!this.passcode_input.value.length) throw new ApiError({ error: 'Empty field', type: 'CLIENT' });
+                passcode = validatePasscode(String(this.passcode_input.value));
+            }
+
+            console.debug('[LoginForm] sending check-auth...', { isManual });
+
+            if (isManual) AuthService.passcode = passcode;
+            const { cache_allowed } = await ClientApi.checkAuth({ auth: await AuthService.getAuth() });
+
+            console.debug('[LoginForm] check-auth OK');
+
+            if (cache_allowed) AuthService.save();
+
+            ShareInvite.current_vault_id = document.body.getAttribute('data-current_vault_id');
+            this.disableForm(true);
+
+            document.body.classList.add('authorized');
+            this.onLogin();
+
+            setTimeout(() => {
+                this.loginForm.remove();
+                console.debug('[LoginForm] removed from DOM');
+            }, 1000);
+
+        } catch (error) {
+            console.error(error);
+
+            if (error instanceof ApiError) {
+                this.error_el.innerText = error.error;
+            } else this.error_el.innerText = 'Unexpected Error';
+
+            AuthService.clear();
+            this.disableForm(false);
+            this.passcode_input.focus();
+            this.passcode_input.value = '';
+            this.loginForm.classList.add('error');
         }
     }
 
@@ -53,48 +101,7 @@ export default class LoginForm {
 
         this.loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            this.loginForm.classList.remove('error');
-            this.disableForm(true);
-
-            try {
-                if (!this.passcode_input.value.length) throw new ApiError({ error: 'Empty field', type: 'CLIENT' });
-
-                const passcode = String(this.passcode_input.value);
-                console.debug('[LoginForm] sending check-auth...', { passcode });
-
-                AuthService._passcode = passcode;
-                const { cache_allowed } = await ClientApi.checkAuth({ auth: AuthService.auth });
-
-                console.debug('[LoginForm] check-auth OK');
-
-                ShareInvite.current_vault_id = document.body.getAttribute('data-current_vault_id');
-
-                if (cache_allowed) AuthService.save(passcode);
-
-
-                this.disableForm(true);
-
-                document.body.classList.add('authorized');
-                this.onLogin();
-
-                setTimeout(() => {
-                    this.loginForm.remove();
-                    console.debug('[LoginForm] removed from DOM');
-                }, 1000);
-
-            } catch (error) {
-                console.error(error);
-
-                if (error instanceof ApiError) {
-                    this.error_el.innerText = error.error;
-                } else this.error_el.innerText = 'Unexpected Error';
-
-                AuthService.clear();
-                this.disableForm(false);
-                this.passcode_input.focus();
-                this.passcode_input.value = '';
-                this.loginForm.classList.add('error');
-            }
+            this.onSubmit(true)
         });
     }
 }

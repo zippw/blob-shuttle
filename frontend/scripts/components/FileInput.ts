@@ -51,6 +51,30 @@ export default class FileInput {
         this.dropzoneEl.addEventListener('drop', (e: DragEvent) => this.handleFileDrop(e));
         this.inputEl.addEventListener('cancel', () => this.inputEl.dispatchEvent(new Event('change')));
         this.inputEl.addEventListener('change', () => this.handleFileSelectionChange());
+        window.addEventListener('paste', (e) => { this.handleGlobalPaste(e) });
+    }
+
+    private handleGlobalPaste(e: ClipboardEvent): void {
+        const target = e.target as HTMLElement;
+
+        const isTargetOurInput = target === this.inputEl;
+        const isTargetOurDropzone = this.dropzoneEl?.contains(target);
+        if (!isTargetOurInput && !isTargetOurDropzone) {
+            if (target && (
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.tagName === 'SELECT' ||
+                target.isContentEditable
+            )) return;
+        }
+
+        const files = e.clipboardData?.files;
+        console.debug('[FileInput] Pasted files:', files);
+
+        if (files && files.length > 0) {
+            this.filesChosen = files;
+            e.preventDefault();
+        }
     }
 
     private handleFileSelectionChange(): void {
@@ -65,7 +89,7 @@ export default class FileInput {
         const dt = e.dataTransfer;
         if (!dt || !dt.files.length) return;
 
-        console.log(`[FileInput] files dropped: ${dt.files.length} items.`);
+        console.debug(`[FileInput] files dropped: ${dt.files.length} items.`);
         this.inputEl.files = dt.files;
         this.inputEl.dispatchEvent(new Event('change'));
     }
@@ -108,6 +132,10 @@ export default class FileInput {
         }
 
         if (this.options.onFileChosen) this.options.onFileChosen();
+    }
+
+    public chooseFiles(files: File[] | FileList) {
+        this.filesChosen = files;
     }
 
     /* main validation methods */

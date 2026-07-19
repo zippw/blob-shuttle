@@ -3,7 +3,7 @@ import {
     RevealVaultArgs, CreateInviteArgs, CreateVaultArgs, CheckAuthArgs,
     RevealVaultResult, CreateInviteResult, CreateVaultResult, CheckAuthResult
 } from './schema';
-import { MAX_BUCKET_SIZE, MAX_FILE_COUNT, MAX_FILE_SIZE } from './constants';
+import { MAX_BUCKET_SIZE, MAX_FILE_COUNT, MAX_FILE_SIZE, MAX_PASSCODE_LENGTH } from './constants';
 import { ApiError } from './ApiError';
 
 export const ValidationError = (message: string, details?: string) => new ApiError({
@@ -23,6 +23,9 @@ export const validateVaultId = (vault_id: unknown): string => {
 export const validatePasscode = (passcode: unknown): string => {
     if (typeof passcode !== 'string' || passcode.length === 0)
         throw ValidationError('Invalid passcode.', `Passcode must be a non-empty string. passcode=${passcode}`);
+
+    if (passcode.length > MAX_PASSCODE_LENGTH)
+        throw ValidationError('Invalid passcode.', `Passcode is too big (>${MAX_PASSCODE_LENGTH}). passcode.length=${passcode.length}`);
 
     return passcode;
 }

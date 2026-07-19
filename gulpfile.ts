@@ -8,6 +8,7 @@ import glob from 'fast-glob';
 import path from 'node:path';
 import rename from 'gulp-rename';
 import { Transform } from 'node:stream';
+import fs from 'node:fs';
 
 const sass = gulpSass(dartSass);
 const assetCache = new Map<string, string>();
@@ -35,7 +36,7 @@ const styles = () => gulp.src('frontend/styles/**/*.scss')
 // TS -> Cache by original source path (1:1 strict mapping)
 const scripts = async () => {
     const entryPoints = await glob('frontend/scripts/**/*.ts');
-    
+
     await Promise.all(entryPoints.map(async (entry) => {
         try {
             const result = await esbuild.build({
@@ -53,11 +54,20 @@ const scripts = async () => {
                 const key = normalizePath(entry);
                 assetCache.set(key, result.outputFiles[0].text);
             }
-        } catch (err) {}
+        } catch (err) { }
     }));
 };
 
 // Pug Template compiler pipeline
+const MIME_TYPES: Record<string, string> = {
+    '.ico': 'image/x-icon',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.svg': 'image/svg+xml'
+};
+
 const templates = () => gulp.src('frontend/views/**/*.pug')
     .pipe(new Transform({
         objectMode: true,
@@ -77,6 +87,32 @@ const templates = () => gulp.src('frontend/views/**/*.pug')
                         js: (text: string, opt: { path: string }) => {
                             const key = normalizePath(opt.path || '');
                             return assetCache.get(key) || `/* Error: Source JS/TS "${key}" not found in cache */`;
+                        },
+                        'base64': function (text: string, opts: { path: string; type: string }) {
+                            if (!opts || !opts.path) {
+                                throw new Error('Фильтр :base64 требует указания path="..."');
+                            }
+
+                            const fileBuffer = fs.readFileSync(opts.path);
+                            const base64String = fileBuffer.toString('base64');
+
+                            let mimeType = opts.type;
+
+                            if (!mimeType) {
+                                const ext = path.extname(opts.path).toLowerCase();
+                                const mimeMap: Record<string, string> = {
+                                    '.ico': 'image/x-icon',
+                                    '.png': 'image/png',
+                                    '.jpg': 'image/jpeg',
+                                    '.jpeg': 'image/jpeg',
+                                    '.gif': 'image/gif',
+                                    '.svg': 'image/svg+xml'
+                                };
+                                mimeType = mimeMap[ext] || 'application/octet-stream';
+                            }
+
+                            const dataUri = `data:${mimeType};base64,${base64String}`;
+                            return text.replaceAll('<BASE64_PLACEHOLDER>', dataUri);
                         }
                     }
                 });

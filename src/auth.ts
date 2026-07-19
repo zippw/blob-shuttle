@@ -2,7 +2,8 @@ import * as crypto from 'crypto';
 import { assertAuthorization, isObject } from './shared/validators';
 import { Authorization } from './shared/schema';
 import { ApiError } from './shared/ApiError';
-
+import { validateServerHash } from './security';
+import { MAX_PASSCODE_LENGTH } from './shared/constants';
 
 export function verifySessionAuthority(
     bodyJSON: unknown,
@@ -21,8 +22,9 @@ export function verifySessionAuthority(
         if (inviteData.is_valid) {
             // INVITE HASH WITH PASSCODE check
             if (inviteData.passcode !== undefined) {
+
                 // relevance check
-                if (checkGlobalPasscode(inviteData.passcode).isValid === false)
+                if (checkGlobalPasscode(inviteData.passcode, true).isValid === false)
                     return { authorized: false, isManual: false, cache_allowed: false };
 
                 // matching passcodes check
@@ -72,30 +74,51 @@ export function verifySessionAuthority(
     }
 }
 
-function checkGlobalPasscode(passcode: unknown): {
+// passcode '{clienHash}:{timestamp}'
+function checkGlobalPasscode(passcode: unknown, ignoreTimestamp: boolean = false): {
     isLongTerm: boolean;
     isValid: boolean;
 } {
+    if (!passcode || typeof passcode !== 'string' || passcode.length > MAX_PASSCODE_LENGTH) {
+        return { isValid: false, isLongTerm: false };
+    }
+
+    if (validateServerHash(passcode, ignoreTimestamp
+        ? (1 * 60 * 60 * 1000)
+        : (5 * 60 * 1000)
+    ) === false) return { isValid: false, isLongTerm: false }
+
+    const [clientHash, timestampStr] = (passcode || '').split(':');
+    const inputBuffer = Buffer.from(clientHash, 'utf-8');
+
+
     const defaultPass = process.env.PASSCODE;
     const longTermPass = process.env.LONG_TERM_PASSCODE;
 
-    if (!passcode || typeof passcode !== 'string') return { isValid: false, isLongTerm: false };
+    const hmacKey = 'AAAAAAAHRRRRRasupercoolmegatopString';
 
-    if (defaultPass && passcode === defaultPass) try {
-        if (crypto.timingSafeEqual(Buffer.from(passcode, 'utf-8'), Buffer.from(defaultPass, 'utf-8'))) {
-            return { isValid: true, isLongTerm: false };
-        }
-    } catch {
-        return { isValid: true, isLongTerm: false };
+    let isDefaultValid = false;
+    if (defaultPass) {
+        const serverExpectedHash = crypto.createHash('sha256').update(`${defaultPass}:${timestampStr}`).digest('hex');
+
+        const inputHmac = crypto.createHmac('sha256', hmacKey).update(inputBuffer).digest();
+        const targetHmac = crypto.createHmac('sha256', hmacKey).update(Buffer.from(serverExpectedHash, 'utf-8')).digest();
+
+        isDefaultValid = crypto.timingSafeEqual(inputHmac, targetHmac);
     }
 
-    if (longTermPass && passcode === longTermPass) try {
-        if (crypto.timingSafeEqual(Buffer.from(passcode, 'utf-8'), Buffer.from(longTermPass, 'utf-8'))) {
-            return { isValid: true, isLongTerm: true };
-        }
-    } catch {
-        return { isValid: true, isLongTerm: true };
+    let isLongTermValid = false;
+    if (longTermPass) {
+        const serverExpectedHash = crypto.createHash('sha256').update(`${longTermPass}:${timestampStr}`).digest('hex');
+
+        const inputHmac = crypto.createHmac('sha256', hmacKey).update(inputBuffer).digest();
+        const targetHmac = crypto.createHmac('sha256', hmacKey).update(Buffer.from(serverExpectedHash, 'utf-8')).digest();
+
+        isLongTermValid = crypto.timingSafeEqual(inputHmac, targetHmac);
     }
+
+    if (isDefaultValid) return { isValid: true, isLongTerm: false };
+    if (isLongTermValid) return { isValid: true, isLongTerm: true };
 
     return { isValid: false, isLongTerm: false };
 }

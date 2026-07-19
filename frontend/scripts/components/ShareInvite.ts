@@ -9,7 +9,7 @@ export default class ShareInvite {
 
     constructor(btnEl: HTMLButtonElement, vault_id: string) {
         this.btnEl = btnEl;
-        console.log('[ShareInvite] init');
+        console.debug('[ShareInvite] init');
 
         this.bind();
         try {
@@ -34,13 +34,13 @@ export default class ShareInvite {
         });
 
         this.btnEl.addEventListener('click', async () => {
-            console.log('[ShareInvite] generating hash link...');
+            console.debug('[ShareInvite] generating hash link...');
             this.btnEl.disabled = true;
 
             const vault_id = ShareInvite.current_vault_id;
-            const { hash } = await ClientApi.createInvite({ vault_id, auth: AuthService.auth });
+            const { hash } = await ClientApi.createInvite({ vault_id, auth: await AuthService.getAuth() });
 
-            console.log('[ShareInvite] Server response payload:', hash);
+            console.debug('[ShareInvite] Server response payload:', hash);
 
             copyToClipboard(`${window.location.origin}${window.location.pathname}?invite=${hash}`).then(x => {
                 changeBtnContent(this.btnEl, 'Copied!')

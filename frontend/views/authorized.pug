@@ -4,6 +4,15 @@ html(lang="en")
         meta(charset="UTF-8")
         meta(name="viewport" content="width=device-width, initial-scale=1.0")
         title BLOB-SHUTTLE
+
+        if consts.ENABLE_STATIC
+            link(rel="icon" type="image/png" href="?path=static&file=icon-192x192.png")
+            link(rel="apple-touch-icon" href="?path=static&file=icon-192x192.png")
+
+        if consts.ENABLE_PWA
+            :base64(path="frontend/views/base64/manifest.json" type="application/json")
+                <link rel="manifest" href="<BASE64_PLACEHOLDER>" />
+
         link(href="https://cdn.jsdelivr.net/npm/@exuanbo/file-icons-js@latest/dist/css/file-icons.min.css" rel="stylesheet")
         style
             :css(path="frontend/styles/main.scss")
@@ -28,7 +37,7 @@ html(lang="en")
                         )
                         label#files_dropzone.drop-zone(for="files_input")
                             h1 Drop files here, or click to choose
-                            h2 Max file size: #{consts.MAX_FILE_SIZE_PARSED}. Maximum #{consts.MAX_FILE_COUNT} files.
+                            h2 Max file size: #{consts.MAX_FILE_SIZE_FORMATTED}. Maximum #{consts.MAX_FILE_COUNT} files.
                             small.error X
                         .upload-box
                             button#upload_files_btn.main(

@@ -4,11 +4,13 @@
         "build:clean": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\"",
         "build:frontend": "gulp build",
         "build:backend": "tsc",
+        "copy:static": "node -e \"const fs = require('fs'); fs.cpSync('src/static', 'dist/static', { recursive: true, force: true });\"",
         "build:package": "node -e \"const pkg = require('./package.json'); delete pkg.devDependencies; delete pkg.scripts; fs.writeFileSync('dist/package.json', JSON.stringify(pkg, null, 2));\"",
-        "build": "npm run build:clean && npm run build:frontend && npm run build:backend && npm run build:package",
+        "build:install": "cd dist && npm install --production --loglevel=error --no-fund --no-audit && node -e \"const fs = require('fs'); fs.rmSync('package.json', { force: true }); fs.rmSync('package-lock.json', { force: true });\"",
+        "build": "npm run build:clean && npm run copy:static && npm run build:frontend && npm run build:backend && npm run build:package",
         "watch:frontend": "gulp watch",
         "serve": ".\\serve.bat",
-        "server": "node --env-file=.env --import tsx --watch server.ts"
+        "server": "cross-env NODE_ENV=development node --env-file=.env --import tsx --watch server.ts"
     },
     "devDependencies": {
         "@types/express": "^5.0.6",
@@ -17,6 +19,7 @@
         "@types/gulp-sass": "^6.0.0",
         "@types/node": "^26.0.1",
         "@yandex-cloud/function-types": "^2.1.2",
+        "cross-env": "^10.1.0",
         "esbuild": "^0.28.1",
         "express": "^5.2.1",
         "fast-glob": "^3.3.3",

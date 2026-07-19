@@ -1,0 +1,27 @@
+@use 'sass:color';
+@use '../../vars/colors.scss' as *;
+
+input.main {
+    padding: 1rem;
+    text-align: left;
+    background: $bg_light;
+    outline: 0;
+    border: 2px solid transparent;
+    color: $text;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+    transition:
+        background-color .2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+
+    &:focus {
+        border-color: $purple;
+        box-shadow: 0 0 0 4px color.scale($purple, $alpha: -80%);
+    }
+
+    &:disabled {
+        background-color: color.scale($muted, $alpha: -80%);
+    }
+}

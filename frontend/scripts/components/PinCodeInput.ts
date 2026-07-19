@@ -4,6 +4,7 @@ interface PinCodeInputOptions {
 
     // per each char
     pattern?: RegExp;
+    pastePattern?: RegExp;
     onComplete?: (code: string) => void;
     onChange?: (code: string) => void;
 }
@@ -33,7 +34,7 @@ export default class PinCodeInput {
     }
 
     public destroy(): void {
-        console.log('[PinCodeInput] Destroying component, flushing DOM event listeners...');
+        console.debug('[PinCodeInput] Destroying component, flushing DOM event listeners...');
         this._listeners.forEach(({ input, onInput, onKeyDown, onPaste }) => {
             input.removeEventListener('input', onInput);
             input.removeEventListener('keydown', onKeyDown);
@@ -92,15 +93,22 @@ export default class PinCodeInput {
     private onPasteEvent(e: ClipboardEvent) {
         e.preventDefault();
         const data = e.clipboardData?.getData('text').trim() || '';
+        let code = data;
 
-        if (!this.isValidInput(data)) {
-            console.warn(`[PinCodeInput] Rejected paste value: "${data}" due to validation rules.`);
+        // matching code from strings
+        if (this.options.pastePattern) {
+            const extracted = data.match(this.options.pastePattern);
+            if (extracted) code = extracted[0];
+        }
+
+        if (!this.isValidInput(code)) {
+            console.warn(`[PinCodeInput] Rejected paste value: "${code}" due to validation rules.`);
             return;
         }
 
-        console.log(`[PinCodeInput] Code pasted into inputs: ${data}`);
+        console.debug(`[PinCodeInput] Code pasted into inputs: ${code}`);
         this.inputs.forEach((inp, idx) => {
-            inp.value = data[idx] || '';
+            inp.value = code[idx] || '';
         });
 
         this.inputs[this.inputs.length - 1].focus();

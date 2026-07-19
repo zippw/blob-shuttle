@@ -1,0 +1,27 @@
+button[data-wavy] {
+    position: relative;
+    overflow: hidden;
+
+    .wave {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        animation: ripple 0.7s linear;
+        pointer-events: none;
+    }
+
+    @keyframes ripple {
+        from {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 0.4;
+        }
+
+        to {
+            transform: translate(-50%, -50%) scale(30);
+            opacity: 0;
+        }
+    }
+}

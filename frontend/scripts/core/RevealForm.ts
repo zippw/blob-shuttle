@@ -28,6 +28,7 @@ export default class RevealForm extends BaseForm {
         this.input = new PinCodeInput(document.getElementById('vault_id_pincodeinput'), {
             length: 6,
             pattern: /^[a-zA-Z0-9]{1}$/,
+            pastePattern: /(?<=\bvault-|\/|^)[a-zA-Z0-9]{6}(?=\b|\/)/,
             onComplete: (code) => { this.onFullFilled(code); }
         });
 
@@ -36,7 +37,7 @@ export default class RevealForm extends BaseForm {
         this.pathEl = this.filesContainer.parentElement.querySelector('.nav #keypath') as HTMLSpanElement;
         this.errorEl = this.formEl.querySelector('small.error') as HTMLElement;
 
-        console.log('[RevealForm] Initializing components...');
+        console.debug('[RevealForm] Init');
         this.bind();
         if (ShareInvite.current_vault_id) this.autoFill();
     }
@@ -63,7 +64,7 @@ export default class RevealForm extends BaseForm {
 
         try {
             const vault_id = validateVaultId(targetVaultId);
-            console.log(`[RevealForm] auto-filling inputs with vault_id: ${vault_id}`);
+            console.debug(`[RevealForm] auto-filling inputs with vault_id: ${vault_id}`);
             this.input.value = vault_id;
         } catch (error) {
             console.debug(`[RevealForm] autoFill skipped. Reason: invalid or empty vault_id context.`);
@@ -78,7 +79,7 @@ export default class RevealForm extends BaseForm {
     public bind() {
         document.addEventListener('vault:uploaded', async (e: Event) => {
             const { vault_id } = (e as CustomEvent).detail;
-            console.log(`[RevealForm] vault:uploaded vault_id=${vault_id}`);
+            console.debug(`[RevealForm] vault:uploaded vault_id=${vault_id}`);
             try {
                 // this.formEl.reset();
                 this.onFullFilled(vault_id);
@@ -90,7 +91,7 @@ export default class RevealForm extends BaseForm {
 
 
     private async onFullFilled(vault_id: string) {
-        console.log(`[RevealForm] Full code entered. Requesting S3 file list for vault: ${vault_id}`);
+        console.debug(`[RevealForm] Full code entered. Requesting S3 file list for vault=${vault_id}`);
 
         this.isBusy = true; // all lines above affects priority
         // this.filesContainer.parentElement.classList.remove('expanded');
@@ -98,8 +99,8 @@ export default class RevealForm extends BaseForm {
         updateActiveForm();
 
         try {
-            const files = await ClientApi.revealVault({ vault_id, auth: AuthService.auth });
-            console.log(`[RevealForm] Successfully received ${files.length} links from S3.`);
+            const files = await ClientApi.revealVault({ vault_id, auth: await AuthService.getAuth() });
+            console.debug(`[RevealForm] Successfully received ${files.length} links from S3.`);
 
             this.filesContainer.innerHTML = '';
             const cardPromises = files.map(async (file: { url: string; name: string; size: number }) => {
@@ -118,7 +119,7 @@ export default class RevealForm extends BaseForm {
             this.filesContainer.innerHTML = allCardsHtmlArray.join('');
 
             ShareInvite.current_vault_id = vault_id;
-            this.pathEl.innerHTML = `Vault ID: ${vault_id}`;
+            this.pathEl.innerText = `Vault ID: ${vault_id}`;
             this.filesContainer.parentElement.classList.add('expanded');
         } catch (error) {
             console.error(error);
@@ -133,6 +134,8 @@ export default class RevealForm extends BaseForm {
             this.formEl.reset();
             this.isBusy = false;
             this.input.focus();
+        } finally {
+            updateActiveForm();
         }
     }
 }

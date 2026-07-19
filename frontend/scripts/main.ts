@@ -3,10 +3,10 @@ import RevealForm from "./core/RevealForm";
 import CreateForm from "./core/CreateForm";
 import { BaseForm } from "./core/base";
 import { animate, resizeCanvas, CONFIG, canvas } from "./nebula";
-import { AuthService } from "./AuthService";
 import ShareInvite from "./components/ShareInvite";
-import { changeBtnContent, copyToClipboard } from "./utils";
-import ClientApi from "./ClientApi";
+import { AuthService } from "./AuthService";
+import { registerSW, checkSharedFiles } from "./sw";
+registerSW();
 
 let isThrottling = false;
 
@@ -42,7 +42,14 @@ function initializeApp(): void {
         document.body.getAttribute('data-vault-id')
     );
 
-    forms = [new CreateForm(), new RevealForm()];
+    const cf = new CreateForm();
+    forms = [cf, new RevealForm()];
+    checkSharedFiles().then((files) => {
+        if (files) {
+            console.log('File array caught via cache storage:', files);
+            cf.input.chooseFiles(files);
+        }
+    });
     document.body.classList.add('authorized');
 
     const shareBtn = document.getElementById('share');
@@ -68,6 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Launch standalone blocker modal if manual password validation is required
+    await AuthService.init();
     new LoginForm(() => {
         initializeApp();
         forms.forEach(form => form.activateForm());
@@ -104,7 +112,7 @@ const updateActiveForm = () => {
     const avg = priority.reduce((a, c) => a + c, 0) / priority.length;
 
     if (lastPriority !== priority) {
-        console.debug('priority changed: CreateForm', priority[0], '/', priority[1], 'RevealForm')
+        console.debug('[main] priority changed: CreateForm', priority[0], '/', priority[1], 'RevealForm')
         lastPriority = priority
 
         formWrapperEls.forEach((form, i) => {
@@ -116,61 +124,3 @@ const updateActiveForm = () => {
 }
 
 export { updateActiveForm };
-
-
-
-
-
-
-
-
-
-
-
-
-
-// let forms: BaseForm[] = [];
-// function initializeApp() {
-//     forms = [new CreateForm(), new RevealForm()];
-//     document.body.classList.add('authorized');
-
-//     const shareBtn = document.getElementById('share');
-//     if (shareBtn) {
-//         shareBtn.removeAttribute('disabled');
-//         shareBtn.setAttribute('tabindex', '0');
-//     }
-// }
-
-// document.addEventListener('DOMContentLoaded', async () => {
-//     document.getElementById('share').addEventListener('click', async () => {
-//         console.log('clicked')
-//         const r = await fetch(`${window.location.pathname}?path=create-invite`, {
-//             method: 'POST',
-//             body: JSON.stringify({ auth: AuthService.auth, vault_id: ShareInvite.current_vault_id }),
-//             headers: { 'Content-Type': 'application/json' }
-//         });
-
-//         console.log(await r.text());
-//     });
-
-//     document.addEventListener('focusin', (e) => updateActiveForm());
-//     document.addEventListener('focusout', (e) => updateActiveForm());
-
-
-
-//     const isServerAuthorized = document.body.classList.contains('authorized');
-
-//     if (isServerAuthorized) return initializeApp();
-
-//     new LoginForm(() => {
-//         initializeApp();
-
-//         forms.forEach(form => form.activateForm());
-//     });
-
-//     // test
-//     // const r = await fetch(window.location.pathname + '?path=delete-vault', { method: 'DELETE' });
-// });
-
-
-// export { updateActiveForm }

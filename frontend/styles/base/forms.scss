@@ -1,0 +1,71 @@
+@use '../vars/colors.scss' as *;
+@use '../vars/easings.scss' as *;
+
+form {
+    h1 {
+        font-size: 1.5rem;
+        line-height: 120%;
+        margin-bottom: .3rem;
+    }
+
+    h2 {
+        color: $muted;
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        font-weight: 400;
+    }
+
+    small.error {
+        display: block;
+        color: $red;
+        pointer-events: none;
+        opacity: 0;
+        padding: 0 3rem;
+        width: 100%;
+        text-align: center;
+        transform: translateY(100%);
+        transition:
+            transform .2s $easeOutBack,
+            opacity .2s;
+    }
+
+    &.error {
+        small.error {
+            pointer-events: all;
+            transform: translateY(0%);
+            opacity: 1;
+        }
+
+        // animate all inputs with this class
+        .error_animation {
+            animation: length_warning .4s 1;
+
+            @keyframes length_warning {
+                0% {
+                    color: $red;
+                    transform: translateX(-5px)
+                }
+
+                25% {
+                    color: $red;
+                    transform: translateX(5px)
+                }
+
+                50% {
+                    color: $red;
+                    transform: translateX(-2.5px)
+                }
+
+                75% {
+                    color: $red;
+                    transform: translateX(2.5px)
+                }
+
+                100% {
+                    color: $red;
+                    transform: translateX(0px)
+                }
+            }
+        }
+    }
+}

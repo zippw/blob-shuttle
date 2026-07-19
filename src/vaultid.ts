@@ -17,8 +17,6 @@ const DAYS_OF_UNIQUENESS = LOOP_DURATION_MS / (1000 * 60 * 60 * 24);
 console.log(`[VaultCrypto] Configured with ${TIME_BLOCK_MS}ms blocks. Uniqueness lifespan: ${DAYS_OF_UNIQUENESS.toFixed(2)} days.`);
 
 
-
-
 function feistel(value: number, key: string, decrypt = false): number {
     let left = (value >>> 16) & 0xffff;
     let right = value & 0xffff;

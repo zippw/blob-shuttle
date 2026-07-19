@@ -1,0 +1,109 @@
+@use 'sass:color';
+@use '../../vars/colors.scss' as *;
+@use '../../vars/easings.scss' as *;
+@use '../../utils/box-spacing.scss' as *;
+@use '../../utils/safe-area.scss' as *;
+
+form#create {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+
+    input[type="file"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+
+        &:disabled {
+            pointer-events: none;
+
+            &~.drop-zone {
+                background: $bg_light;
+                pointer-events: none;
+                filter: blur(10px);
+            }
+        }
+
+        &:focus~.drop-zone {
+            border-color: $purple;
+            @include box-spacing(32px);
+            border-radius: 16px;
+        }
+    }
+
+    .drop-zone {
+        width: 100%;
+        border: 2px dashed transparent;
+        height: 100%;
+        padding: 0 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        z-index: 1;
+
+        @include padding-safe(0px, 2.5rem, 0px, 2.5rem);
+        transition: .5s .1s $easeOutExpo;
+
+        h2 span.error {
+            color: $red !important;
+        }
+
+        &:hover {
+            background: $bg;
+        }
+
+        &.drop-zone--hover {
+            // border-color: $purple;
+            cursor: copy;
+            color: $bg;
+            background-color: $purple;
+            animation: 2s glowing infinite;
+
+            h1,
+            h2 {
+                pointer-events: none;
+            }
+        }
+    }
+
+    .upload-box {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        z-index: 2;
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, 200%);
+        transition: .4s;
+
+        span.muted {
+            color: color.scale($text, $alpha: -40%);
+        }
+    }
+
+
+
+    &.chosen {
+        .drop-zone {
+            background: $bg;
+        }
+
+        .upload-box {
+            transform: translate(-50%, 0%);
+            pointer-events: all;
+            opacity: 1;
+        }
+    }
+}

@@ -1,0 +1,19 @@
+@use '../../vars/colors.scss' as *;
+
+.scrollable {
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: $bg_light;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: $muted;
+
+        &:hover {
+            background: $purple_light
+        }
+    }
+}
