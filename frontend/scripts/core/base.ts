@@ -1,3 +1,5 @@
+import { updateActiveForm } from "../main";
+
 export abstract class BaseForm {
     protected formEl!: HTMLFormElement;
     protected _isBusy: boolean = false;
@@ -11,7 +13,7 @@ export abstract class BaseForm {
     public set isBusy(value: boolean) {
         if (this._isBusy !== value) {
             this._isBusy = value;
-            this.updateFormState(); 
+            this.updateFormState();
         }
     }
 
@@ -21,7 +23,7 @@ export abstract class BaseForm {
      */
     public activateForm(): void {
         if (!this.formEl) return;
-        
+
         const elements = this.formEl.querySelectorAll('input, button, textarea, select');
         elements.forEach(el => {
             const interactiveEl = el as HTMLInputElement | HTMLButtonElement;
@@ -34,13 +36,14 @@ export abstract class BaseForm {
 
     public updateFormState(): void {
         if (!this.formEl) return;
-        
+
         const inputs = this.formEl.querySelectorAll('input, textarea, select');
         inputs.forEach(input => {
             (input as HTMLInputElement).disabled = this._isBusy;
         });
 
         this.onStateUpdate();
+        updateActiveForm();
     }
 
     protected abstract onStateUpdate(): void;

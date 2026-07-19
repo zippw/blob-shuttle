@@ -3,7 +3,7 @@ export const MAX_PASSCODE_LENGTH: number = 1024;
 export const PUT_URL_EXPTIME_SEC: number = 60 * 20;
 export const GET_URL_EXPTIME_SEC: number = 60;
 export const MAX_BUCKET_SIZE: number = 1024 * 1024 * 1024 // 1 GiB (in bytes)
-export const MAX_FILE_SIZE: number = 1024 * 1024 * 50 // 200 MiB
+export const MAX_FILE_SIZE: number = 1024 * 1024 * 50
 export const MAX_FILE_COUNT: number = Math.floor(MAX_BUCKET_SIZE / MAX_FILE_SIZE);
 export const MAX_RPM: number = 40; // disableFunction RPM trigger threshold -1 to disable whole rpm system.
 

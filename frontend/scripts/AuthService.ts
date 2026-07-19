@@ -1,12 +1,11 @@
 // Cookies and other custom headers are removed by Yandex Cloud Functions, so we store passcode in LocalStorage.
 // There are 2 methods of authorization: passcode and invitation.
 
-import { Authorization } from "../../src/shared/schema";
-import { encryptDataSymmetrically, decryptDataSymmetrically, generateDynamicHash, getHardwareKey } from './security';
+import { Authorization } from "@shared/schema";
+import { encryptData, decryptData, generateDynamicHash } from './security';
 
 // LoginForm may be skipped and not rendered on server
 class AuthService {
-    static #hwkey: CryptoKey;
     static #passcode: string | null = null; // session passcode cache (page instance)
     private static readonly LS_KEY = 'auth';
     public static invitation_data: { vault_id: string, expires_at: number } = null;
@@ -28,7 +27,6 @@ class AuthService {
 
     public static async init(): Promise<void> {
         try {
-            this.#hwkey = await getHardwareKey();
             const raw = localStorage.getItem(this.LS_KEY);
             if (!raw) {
                 console.debug('[AuthService] init: no localStorage data')
@@ -37,7 +35,7 @@ class AuthService {
 
             const parsed = JSON.parse(raw);
             if (parsed && typeof parsed === 'object' && parsed.passcode) {
-                const passcodeDecrypted = await decryptDataSymmetrically(this.#hwkey, parsed.passcode);
+                const passcodeDecrypted = await decryptData(parsed.passcode);
                 this.#passcode = passcodeDecrypted;
 
                 console.debug('[AuthService] init finished');
@@ -65,7 +63,7 @@ class AuthService {
             return;
         }
 
-        const passcodeEncrypted = await encryptDataSymmetrically(this.#hwkey, this.#passcode)
+        const passcodeEncrypted = await encryptData(this.#passcode)
         localStorage.setItem(this.LS_KEY, JSON.stringify({ passcode: passcodeEncrypted }));
     }
 

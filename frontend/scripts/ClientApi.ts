@@ -2,14 +2,14 @@ import {
     CreateVaultArgs, CreateInviteArgs, RevealVaultArgs, CheckAuthArgs,
     CreateVaultResult, CreateInviteResult, RevealVaultResult, CheckAuthResult,
     StructuredApiErr,
-} from "../../src/shared/schema";
+} from "@shared/schema";
 
 import {
     assertCreateVaultArgs, assertCreateInviteArgs, assertRevealVaultArgs, assertCheckAuthArgs,
     assertCreateVaultResult, assertCreateInviteResult, assertRevealVaultResult, assertCheckAuthResult,
-} from "../../src/shared/validators";
+} from "@shared/validators";
 
-import { ApiError } from '../../src/shared/ApiError';
+import { ApiError } from '@shared/ApiError';
 
 export default class ClientApi {
     private static readonly endpoint: string = window.location.origin;

@@ -53,7 +53,7 @@ form#create {
         text-align: center;
         z-index: 1;
 
-        @include padding-safe(0px, 2.5rem, 0px, 2.5rem);
+        @include safe('padding', 0px, 2.5rem, 0px, 2.5rem);
         transition: .5s .1s $easeOutExpo;
 
         h2 span.error {

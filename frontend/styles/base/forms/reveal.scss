@@ -31,7 +31,7 @@ main .form-wrapper.reveal-block {
     align-items: center;
     flex-direction: column;
 
-    @include padding-safe(0px, 2.5rem, 0px, 2.5rem);
+    @include safe('padding', 0px, 2.5rem, 0px, 2.5rem);
     padding-top: 0; // TODO: the best way would be to add the right padding only in the screen where there is no .background on the right
     box-sizing: border-box;
 

@@ -2,17 +2,17 @@
 import { AuthService } from "../AuthService";
 import ShareInvite from "../components/ShareInvite";
 import { updateActiveForm } from "../main";
-import { delay } from "../utils";
-import { formatBytes } from "../../../src/shared/utils";
+import { formatBytes } from "@shared/utils";
 import { BaseForm } from "./base";
+import { delay } from "../utils/time";
+import { escapeHtml } from "../utils/dom";
 
 import PinCodeInput from "../components/PinCodeInput";
 
-import { ApiError } from "../../../src/shared/ApiError";
+import { ApiError } from "@shared/ApiError";
 import ClientApi from "../ClientApi";
 
-import { } from '../../../src/shared/schema';
-import { validateVaultId } from '../../../src/shared/validators';
+import { validateVaultId } from '@shared/validators';
 
 declare function getClass(filename: string, options?: any): Promise<string | null>;
 
@@ -109,7 +109,7 @@ export default class RevealForm extends BaseForm {
                 return `<a class="file" href="${file.url}" target="_blank" download="${file.name}">
                     <div class="name">
                         <span class="file-icon ${iconClass}"></span>
-                        <span>${file.name}</span>
+                        <span>${escapeHtml(file.name)}</span>
                     </div>
                     <div class="size">${formatBytes(file.size, 1)}</div>
                 </a>`;

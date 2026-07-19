@@ -3,23 +3,18 @@ import { renderFileRuntime } from './renderer';
 import { decodeInviteHash, extractInviteToken } from './invite';
 import { parseJSONBody } from './utils';
 import { createInvite, createVault, revealVault, checkAuth } from './routes';
-import * as consts from './shared/constants';
 import { verifySessionAuthority } from './auth';
-import { StructuredApiErr } from './shared/schema';
+
+import * as consts from '#shared/constants.js';
+import { StructuredApiErr } from '#shared/schema.js';
+import { validateFileName } from '#shared/validators.js';
+import { ApiError } from '#shared/ApiError.js';
+
 import { SessionContext, sessionStorage } from './session';
 import rpm_run from './ratelimit/setup';
 
 import path from 'node:path';
 import fs from 'node:fs';
-
-const MIME_TYPES: Record<string, string> = {
-    '.svg': 'image/svg+xml',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.js': 'application/javascript',
-    '.json': 'application/json'
-};
 
 export const handler: Handler.Http = async (event, context) => {
     try {
@@ -55,12 +50,18 @@ export const handler: Handler.Http = async (event, context) => {
 
                 /* static logic (pwa purpose) */
                 if (consts.ENABLE_STATIC && query.path === 'static' && query.file) {
-                    const filePath = path.join(__dirname, 'static', query.file);
+                    const fileName = validateFileName(path.basename(query.file));
+                    if (!/^[a-zA-Z0-9._-]+$/.test(fileName)) throw Error('Invalid file name');
+                    const filePath = path.join(__dirname, 'static', fileName);
+
                     const notFoundErr: StructuredApiErr = { error: 'Not Found.', details: `File doesn't exist`, type: 'NOTFOUND' }
                     if (!fs.existsSync(filePath)) return { statusCode: 404, body: JSON.stringify(notFoundErr) }
 
                     const ext = path.extname(filePath).toLowerCase();
-                    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+                    const contentType = {
+                        '.png': 'image/png',
+                        '.js': 'application/javascript'
+                    }[ext] || 'application/octet-stream';
                     const file = await fs.readFileSync(filePath);
 
                     return {
@@ -117,7 +118,6 @@ export const handler: Handler.Http = async (event, context) => {
 
 
 
-import { ApiError } from './shared/ApiError';
 function formatServerErrorResponse(err: unknown) {
     if (err instanceof ApiError) {
         console.error(`[Server ${err.type}]: ${err.error}`);

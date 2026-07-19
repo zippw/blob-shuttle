@@ -58,7 +58,6 @@ export default class PinCodeInput {
     private onInputEvent(input: HTMLInputElement, index: number) {
         let val = input.value;
 
-        // if (val.length > 1) input.value = val.charAt(0);
         // in case of autocomplete
         if (val.length > 1) {
             if (val.length === this.options.length) {
@@ -144,8 +143,6 @@ export default class PinCodeInput {
     public set value(value: string) {
         if (value === '') {
             this.inputs.forEach(input => input.value = '');
-            // this._value = '';
-            // if (this.options.onChange) this.options.onChange('');
             this.syncValue();
             return;
         }

@@ -1,6 +1,6 @@
 
 import * as crypto from 'crypto';
-import { validateVaultId, isObject } from './shared/validators';
+import { validateVaultId, isObject, validateTimestamp } from '#shared/validators.js';
 import { sessionStorage } from './session';
 
 const ENCRYPTION_SECRET = process.env.ENCRYPTION_KEY;
@@ -50,7 +50,7 @@ export function decodeInviteHash(inviteHash: unknown): DecodedInvite {
         if (!data || typeof data !== 'object') return { is_valid: false };
 
         const vault_id = validateVaultId(data.vault_id);
-        const expires_at = Number(data.expires_at);
+        const expires_at = validateTimestamp(data.expires_at);
 
         if (isNaN(expires_at) || Date.now() > expires_at) return { is_valid: false };
 
@@ -67,7 +67,10 @@ export function decodeInviteHash(inviteHash: unknown): DecodedInvite {
 export function generateInviteHash(payload: InvitePayload): string {
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv(ALGORITHM, SECRET_KEY, iv);
-    const text = JSON.stringify(payload);
+
+    const vault_id = validateVaultId(payload.vault_id);
+    const text = JSON.stringify({ ...payload, vault_id });
+
     const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
     return Buffer.concat([iv, tag, encrypted]).toString('base64url');

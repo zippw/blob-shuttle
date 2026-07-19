@@ -1,94 +1,11 @@
-// PADDING
-@mixin padding-safe-top($val: 0px) {
-    padding-top: calc(#{$val} + constant(safe-area-inset-top, 0px));
-    padding-top: calc(#{$val} + env(safe-area-inset-top, 0px));
-}
+@mixin safe($property: padding, $top: 0px, $right: $top, $bottom: $top, $left: $right) {
+    #{$property}-top: calc(#{$top} + env(safe-area-inset-top, 0px));
+    #{$property}-right: calc(#{$right} + env(safe-area-inset-right, 0px));
+    #{$property}-bottom: calc(#{$bottom} + env(safe-area-inset-bottom, 0px));
+    #{$property}-left: calc(#{$left} + env(safe-area-inset-left, 0px));
 
-@mixin padding-safe-right($val: 0px) {
-    padding-right: calc(#{$val} + constant(safe-area-inset-right, 0px));
-    padding-right: calc(#{$val} + env(safe-area-inset-right, 0px));
-}
-
-@mixin padding-safe-bottom($val: 0px) {
-    padding-bottom: calc(#{$val} + constant(safe-area-inset-bottom, 0px));
-    padding-bottom: calc(#{$val} + env(safe-area-inset-bottom, 0px));
-}
-
-@mixin padding-safe-left($val: 0px) {
-    padding-left: calc(#{$val} + constant(safe-area-inset-left, 0px));
-    padding-left: calc(#{$val} + env(safe-area-inset-left, 0px));
-}
-
-@mixin padding-safe($top: 0px, $right: 0px, $bottom: 0px, $left: 0px) {
-    @include padding-safe-top($top);
-    @include padding-safe-right($right);
-    @include padding-safe-bottom($bottom);
-    @include padding-safe-left($left);
-}
-
-// MARGIN
-@mixin margin-safe-top($val: 0px) {
-    margin-top: calc(#{$val} + constant(safe-area-inset-top, 0px));
-    margin-top: calc(#{$val} + env(safe-area-inset-top, 0px));
-}
-
-@mixin margin-safe-right($val: 0px) {
-    margin-right: calc(#{$val} + constant(safe-area-inset-right, 0px));
-    margin-right: calc(#{$val} + env(safe-area-inset-right, 0px));
-}
-
-@mixin margin-safe-bottom($val: 0px) {
-    margin-bottom: calc(#{$val} + constant(safe-area-inset-bottom, 0px));
-    margin-bottom: calc(#{$val} + env(safe-area-inset-bottom, 0px));
-}
-
-@mixin margin-safe-left($val: 0px) {
-    margin-left: calc(#{$val} + constant(safe-area-inset-left, 0px));
-    margin-left: calc(#{$val} + env(safe-area-inset-left, 0px));
-}
-
-@mixin margin-safe($top: 0px, $right: 0px, $bottom: 0px, $left: 0px) {
-    @include margin-safe-top($top);
-    @include margin-safe-right($right);
-    @include margin-safe-bottom($bottom);
-    @include margin-safe-left($left);
-}
-
-// INSET
-@mixin safe-top($val: 0px) {
-    top: calc(#{$val} + constant(safe-area-inset-top, 0px));
-    top: calc(#{$val} + env(safe-area-inset-top, 0px));
-}
-
-@mixin safe-right($val: 0px) {
-    right: calc(#{$val} + constant(safe-area-inset-right, 0px));
-    right: calc(#{$val} + env(safe-area-inset-right, 0px));
-}
-
-@mixin safe-bottom($val: 0px) {
-    bottom: calc(#{$val} + constant(safe-area-inset-bottom, 0px));
-    bottom: calc(#{$val} + env(safe-area-inset-bottom, 0px));
-}
-
-@mixin safe-left($val: 0px) {
-    left: calc(#{$val} + constant(safe-area-inset-left, 0px));
-    left: calc(#{$val} + env(safe-area-inset-left, 0px));
-}
-
-@mixin inset-safe($top: auto, $right: auto, $bottom: auto, $left: auto) {
-    @if sass($top !=auto) {
-        @include safe-top($top);
-    }
-
-    @if sass($right !=auto) {
-        @include safe-right($right);
-    }
-
-    @if sass($bottom !=auto) {
-        @include safe-bottom($bottom);
-    }
-
-    @if sass($left !=auto) {
-        @include safe-left($left);
-    }
+    #{$property}-top: calc(#{$top} + constant(safe-area-inset-top, 0px));
+    #{$property}-right: calc(#{$right} + constant(safe-area-inset-right, 0px));
+    #{$property}-bottom: calc(#{$bottom} + constant(safe-area-inset-bottom, 0px));
+    #{$property}-left: calc(#{$left} + constant(safe-area-inset-left, 0px));
 }

@@ -23,6 +23,8 @@ export const checkSharedFiles = async (): Promise<File[] | null> => {
 
         // Recover total files count from metadata headers
         const totalFiles = parseInt(firstResponse.headers.get('X-Files-Count') || '1', 10);
+        if (isNaN(totalFiles) || totalFiles <= 0) return null;
+
         const reconstructedFiles: File[] = [];
 
         for (let i = 0; i < totalFiles; i++) {

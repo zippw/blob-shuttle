@@ -1,9 +1,9 @@
-import { ApiError } from "../../../src/shared/ApiError";
+import { ApiError } from "@shared/ApiError";
 import { AuthService } from "../AuthService";
 import ShareInvite from "../components/ShareInvite";
 import ClientApi from "../ClientApi";
-import { setQueryParam } from "../utils";
-import { validatePasscode } from "../../../src/shared/validators";
+import { setQueryParam } from "../utils/dom";
+import { validatePasscode } from "@shared/validators";
 
 export default class LoginForm {
     private readonly passcode_input: HTMLInputElement;

@@ -1,3 +1,5 @@
+import { validateTimestamp } from '#shared/validators.js';
+
 export function validateServerHash(hash: string, acceptableTimeError: number = 5 * 60 * 1000): boolean {
     try {
         const [clientHash, timestampStr] = hash.split(':');
@@ -5,12 +7,7 @@ export function validateServerHash(hash: string, acceptableTimeError: number = 5
             console.debug('[security] validateDynamicHash -> false (missing params)', clientHash, timestampStr)
             return false;
         }
-
-        const timestamp = parseInt(timestampStr, 10);
-        if (isNaN(timestamp)) {
-            console.debug('[security] validateDynamicHash -> false (invalid timestamp)')
-            return false;
-        }
+        const timestamp = validateTimestamp(timestampStr);
 
         const now = Date.now();
         if (Math.abs(now - timestamp) > acceptableTimeError) {

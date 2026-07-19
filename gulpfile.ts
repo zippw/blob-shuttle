@@ -10,6 +10,8 @@ import rename from 'gulp-rename';
 import { Transform } from 'node:stream';
 import fs from 'node:fs';
 
+import { tsconfigPathsPlugin } from 'esbuild-plugin-tsconfig-paths';
+
 const sass = gulpSass(dartSass);
 const assetCache = new Map<string, string>();
 
@@ -36,20 +38,20 @@ const styles = () => gulp.src('frontend/styles/**/*.scss')
 // TS -> Cache by original source path (1:1 strict mapping)
 const scripts = async () => {
     const entryPoints = await glob('frontend/scripts/**/*.ts');
-
     await Promise.all(entryPoints.map(async (entry) => {
         try {
             const result = await esbuild.build({
+                plugins: [
+                    tsconfigPathsPlugin({ tsconfig: 'frontend/tsconfig.json' })
+                ],
                 write: false,
                 entryPoints: [entry],
                 target: 'es2020',
                 format: 'iife',
                 minify: true,
                 bundle: true,
-                sourcemap: false,
-                tsconfigRaw: `{"compilerOptions":{"strict":false,"skipLibCheck":true}}`
+                sourcemap: false
             });
-
             if (result.outputFiles?.[0]) {
                 const key = normalizePath(entry);
                 assetCache.set(key, result.outputFiles[0].text);
@@ -59,15 +61,6 @@ const scripts = async () => {
 };
 
 // Pug Template compiler pipeline
-const MIME_TYPES: Record<string, string> = {
-    '.ico': 'image/x-icon',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.svg': 'image/svg+xml'
-};
-
 const templates = () => gulp.src('frontend/views/**/*.pug')
     .pipe(new Transform({
         objectMode: true,
@@ -76,7 +69,6 @@ const templates = () => gulp.src('frontend/views/**/*.pug')
                 const compiled = pugRuntime.compileClient(file.contents.toString(), {
                     filename: file.path,
                     compileDebug: false,
-                    // @ts-ignore
                     externalRuntime: true,
                     name: 'temp',
                     filters: {
@@ -88,28 +80,14 @@ const templates = () => gulp.src('frontend/views/**/*.pug')
                             const key = normalizePath(opt.path || '');
                             return assetCache.get(key) || `/* Error: Source JS/TS "${key}" not found in cache */`;
                         },
-                        'base64': function (text: string, opts: { path: string; type: string }) {
-                            if (!opts || !opts.path) {
-                                throw new Error('Фильтр :base64 требует указания path="..."');
-                            }
+                        base64: function (text: string, opts: { path: string; type: string }) {
+                            if (!opts || !opts.path) throw new Error('Filter :base64 requires path="..."');
 
                             const fileBuffer = fs.readFileSync(opts.path);
                             const base64String = fileBuffer.toString('base64');
 
                             let mimeType = opts.type;
-
-                            if (!mimeType) {
-                                const ext = path.extname(opts.path).toLowerCase();
-                                const mimeMap: Record<string, string> = {
-                                    '.ico': 'image/x-icon',
-                                    '.png': 'image/png',
-                                    '.jpg': 'image/jpeg',
-                                    '.jpeg': 'image/jpeg',
-                                    '.gif': 'image/gif',
-                                    '.svg': 'image/svg+xml'
-                                };
-                                mimeType = mimeMap[ext] || 'application/octet-stream';
-                            }
+                            if (!mimeType) throw new Error('Filter :base64 requires (Mime type) type="..."');
 
                             const dataUri = `data:${mimeType};base64,${base64String}`;
                             return text.replaceAll('<BASE64_PLACEHOLDER>', dataUri);
@@ -118,8 +96,9 @@ const templates = () => gulp.src('frontend/views/**/*.pug')
                 });
                 file.contents = Buffer.from(compiled);
             } catch (err: any) {
-                console.error('❌ Pug Error:', err.toString());
+                console.error('Pug Error:', err.toString());
             }
+
             callback(null, file);
         }
     }))

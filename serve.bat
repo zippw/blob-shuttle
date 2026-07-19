@@ -2,7 +2,7 @@
 chcp 65001 > nul
 :loop
 echo [Launcher] Starting...
-call npm run watch:frontend
+call gulp watch
 echo --------------------------------------------------
 echo [Launcher] Reloading...
 echo --------------------------------------------------

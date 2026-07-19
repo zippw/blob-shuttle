@@ -4,15 +4,15 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createSessionInviteToken } from './invite';
 import { sessionStorage, getInviteData } from './session';
 import { parseJSONBody } from './utils';
-import { GET_URL_EXPTIME_SEC, PUT_URL_EXPTIME_SEC } from './shared/constants';
+import { generateVaultId } from './vaultid';
+
+import { GET_URL_EXPTIME_SEC, PUT_URL_EXPTIME_SEC } from '#shared/constants.js';
 import {
     assertCheckAuthArgs, assertCreateInviteArgs, assertCreateVaultArgs, assertRevealVaultArgs,
-    assertCheckAuthResult, assertCreateInviteResult, assertCreateVaultResult, assertRevealVaultResult
-} from './shared/validators';
-
-import { generateVaultId } from './vaultid';
-import { CheckAuthResult, CreateInviteResult, CreateVaultResult, RevealVaultResult, StructuredApiErr } from './shared/schema';
-import { ApiError } from './shared/ApiError';
+    validateFileName, validateFileSize, validateUrl
+} from '#shared/validators.js';
+import { CheckAuthResult, CreateInviteResult, CreateVaultResult, RevealVaultResult, StructuredApiErr } from '#shared/schema.js';
+import { ApiError } from '#shared/ApiError.js';
 
 const Bucket = 'zw-space';
 const ProjectKey = 'blob-shuttle';
@@ -49,12 +49,15 @@ export const createVault: Handler.Http = async (event) => {
         : vault_id ? vault_id : generateVaultId();
 
     const urlPromises = files.map(async ({ name, size }) => {
-        const command = new PutObjectCommand({ Bucket, Key: `${ProjectKey}/vault-${finalVaultId}/${name}` });
-        const signedUrl = await getSignedUrl(s3Client, command, {
-            expiresIn: invite_hash_data.is_valid
-                ? invite_hash_data.expires_in_sec
-                : PUT_URL_EXPTIME_SEC
-        });
+        const safeName = validateFileName(name);
+        const command = new PutObjectCommand({ Bucket, Key: `${ProjectKey}/vault-${finalVaultId}/${safeName}` });
+        const signedUrl = validateUrl(
+            await getSignedUrl(s3Client, command, {
+                expiresIn: invite_hash_data.is_valid
+                    ? Math.max(1, invite_hash_data.expires_in_sec)
+                    : PUT_URL_EXPTIME_SEC
+            })
+        );
 
         return [name, signedUrl] as const;
     });
@@ -85,15 +88,19 @@ export const revealVault: Handler.Http = async (event) => {
 
         if (objects && objects.length > 0) {
             const pagePromises = objects.map(async (obj) => {
-                if (typeof obj.Key !== 'string' || typeof obj.Size !== 'number') return null;
-                const command = new GetObjectCommand({ Bucket, Key: obj.Key });
-                const url = await getSignedUrl(s3Client, command, {
-                    expiresIn: invite_hash_data.is_valid
-                        ? invite_hash_data.expires_in_sec
-                        : GET_URL_EXPTIME_SEC
-                });
+                try {
+                    const size = validateFileSize(obj.Size);
 
-                return { name: obj.Key.replace(Prefix, ''), url, size: obj.Size };
+                    if (typeof obj.Key !== 'string') return null;
+                    const command = new GetObjectCommand({ Bucket, Key: obj.Key });
+                    const url = await getSignedUrl(s3Client, command, {
+                        expiresIn: invite_hash_data.is_valid
+                            ? Math.max(1, invite_hash_data.expires_in_sec)
+                            : GET_URL_EXPTIME_SEC
+                    });
+
+                    return { name: obj.Key.replace(Prefix, ''), url, size };
+                } catch (err) { return null }
             });
 
             const resolvedObjects = await Promise.all(pagePromises);

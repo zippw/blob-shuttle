@@ -1,13 +1,15 @@
 {
+    "extends": "../tsconfig.base.json",
     "compilerOptions": {
-        "target": "es2020",
-        "module": "none",
         "strict": false,
-        "isolatedModules": false,
-        "skipLibCheck": true,
-        "types": [],
+        "paths": {
+            "@shared/*": [
+                "../src/shared/*"
+            ]
+        }
     },
     "include": [
-        "scripts/**/*.ts"
+        "scripts/**/*.ts",
+        "../src/shared/**/*.ts"
     ]
 }

@@ -189,16 +189,4 @@ function resizeCanvas() {
     ];
 }
 
-// Safely poll global variable config mutations and viewport zoom changes
-let currentScale = CONFIG.scale;
-let currentDPR = window.devicePixelRatio || 1;
-setInterval(() => {
-    const dpr = window.devicePixelRatio || 1;
-    if (CONFIG.scale !== currentScale || dpr !== currentDPR) {
-        currentScale = CONFIG.scale;
-        currentDPR = dpr;
-        resizeCanvas();
-    }
-}, 200);
-
 export { animate, resizeCanvas };

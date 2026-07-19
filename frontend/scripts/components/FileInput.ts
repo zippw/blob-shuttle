@@ -1,3 +1,5 @@
+import { escapeHtml } from "../utils/dom";
+
 interface FileInputOptions {
     maxFileSize?: number;
     maxFileCount?: number;
@@ -122,7 +124,7 @@ export default class FileInput {
 
             const tooManyClass = this.inputValidation.chosenTooManyFiles ? ' class="error"' : '';
             const filePlural = this.filesChosen.length > 1 ? 's' : '';
-            const overSizeError = this.inputValidation.isOverSize ? ` <span class="error">${this.inputValidation.isOverSize.name} is too big</span>.` : '';
+            const overSizeError = this.inputValidation.isOverSize ? ` <span class="error">${escapeHtml(this.inputValidation.isOverSize.name)} is too big</span>.` : '';
 
             this.labelH2El.innerHTML = `<span${tooManyClass}>${this.filesChosen.length} / ${this.options.maxFileCount}</span> file${filePlural} chosen.${overSizeError}`;
         } else {

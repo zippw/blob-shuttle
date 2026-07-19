@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { ApiError } from '#shared/ApiError.js';
 
 // @ts-ignore
 import wrap from 'pug-runtime/wrap';
@@ -12,7 +13,11 @@ async function renderFileRuntime(src: string, options: any) {
 
         return html
     } catch (error) {
-        return `<h1>Error: ${error}</h1>`;
+        throw new ApiError({
+            error: 'Failed to render page',
+            details: error instanceof Error ? error.message : String(error),
+            type: 'UNEXPECTED'
+        })
     }
 }
 

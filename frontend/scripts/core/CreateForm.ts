@@ -1,12 +1,16 @@
 import { BaseForm } from "./base";
 import { updateActiveForm } from "../main";
-import { setQueryParam, delay, setProgress, changeBtnContent } from "../utils";
+import { delay } from "../utils/time";
+import { setProgress } from "../components/progress-ring";
+import { changeBtnContent } from "../components/btn-content-transition";
+
 import { AuthService } from "../AuthService";
 import ShareInvite from "../components/ShareInvite";
 import ClientApi from "../ClientApi";
 import FileInput from "../components/FileInput";
-import { ApiError } from "../../../src/shared/ApiError";
-import { MAX_FILE_COUNT, MAX_FILE_SIZE } from "../../../src/shared/constants";
+import { ApiError } from "@shared/ApiError";
+import { MAX_FILE_COUNT, MAX_FILE_SIZE } from "@shared/constants";
+import { validateMimeType } from "@shared/validators";
 
 export default class CreateForm extends BaseForm {
     private readonly uploadFileBtn: HTMLButtonElement;
@@ -32,7 +36,6 @@ export default class CreateForm extends BaseForm {
                 // switching input styles depending on whether files are selected or not
                 this.formEl.classList.toggle('chosen', this.input.inputValidation.hasFiles);
                 this.updateFormState();
-                updateActiveForm();
             }
         });
 
@@ -120,7 +123,9 @@ export default class CreateForm extends BaseForm {
                 };
 
                 xhr.open('PUT', urls[file.name]);
-                xhr.setRequestHeader('Content-Type', file.type);
+
+                const mime = file.type || 'application/octet-stream';
+                xhr.setRequestHeader('Content-Type', validateMimeType(mime));
 
                 xhr.onload = () => {
                     loaded_bytes[i] = xhr.status === 200 ? file.size : 0;
@@ -168,6 +173,7 @@ export default class CreateForm extends BaseForm {
 
             await changeBtnContent(this.uploadFileBtn, 'Uploading... <div class="progress-ring"></div>');
             setProgress(0);
+
             await delay(1000);
 
             const total_bytes = this.input.filesChosen.reduce((acc, x) => acc + x.size, 0);

@@ -84,43 +84,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 const formWrapperEls = document.querySelectorAll('main .form-wrapper.create-block, main .form-wrapper.reveal-block') as NodeListOf<HTMLElement>;
-let lastPriority = null;
-const updateActiveForm = () => {
-    if (!forms.length) return; // not yet initialized, doesn't matter much
 
-    let priority = new Array(forms.length).fill(0);
+const getPriority = (form: BaseForm, i: number) => {
+    let p = 0;
+    if (form.ac.hasFocusedEls) p += 3;
+    if (form.ac.isBusy) p += 2;
+    if (form.ac.hasFilesChosen ||
+        form.ac.hasFileListRendered ||
+        form.ac.isDraggingFiles === true
+    ) p += 1;
 
-    if (forms[0].ac.hasFilesChosen) priority[0]++;
+    return p;
+};
 
-    // equivalent priority compared to focus: form elements usually disabled (no focus) when processing
-    if (forms[0].ac.isBusy) priority[0] += 2;
-    if (forms[0].ac.hasFocusedEls) priority[0] += 2;
-    if (forms[0].ac.isDraggingFiles) priority[0] += 2;
-
-    if (forms[1].ac.hasFileListRendered) priority[1] += 1;
-    if (forms[1].ac.isBusy) priority[1] += 3;
-    if (forms[1].ac.hasFocusedEls) priority[1] += 2;
-
-    if ((forms[1].ac.isBusy || forms[1].ac.hasFileListRendered) &&
-        (forms[0].ac.hasFocusedEls || forms[0].ac.isDraggingFiles)
-    ) priority = [0, 0];
-    if ((forms[0].ac.isBusy || forms[0].ac.hasFilesChosen) &&
-        (forms[1].ac.hasFileListRendered || forms[1].ac.isBusy)
-    ) priority = [0, 0];
-
-    const maxPriority = Math.max(...priority);
-    const avg = priority.reduce((a, c) => a + c, 0) / priority.length;
-
-    if (lastPriority !== priority) {
-        console.debug('[main] priority changed: CreateForm', priority[0], '/', priority[1], 'RevealForm')
-        lastPriority = priority
-
-        formWrapperEls.forEach((form, i) => {
-            const isWinner = priority[i] === maxPriority && maxPriority > 0;
-
-            form.classList.toggle('active', avg === priority[0] ? false : isWinner)
-        });
-    }
-}
-
-export { updateActiveForm };
+export const updateActiveForm = () => {
+    const priorities = forms.map(getPriority);
+    const max = Math.max(...priorities);
+    forms.forEach((form, i) => {
+        formWrapperEls[i].classList.toggle('active', priorities[i] === max && max > 0);
+    });
+};

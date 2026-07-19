@@ -67,6 +67,8 @@ export default class RPM {
 
         if (!res.ok) throw new Error(`[rpm] ${res.status} Error ${await res.text()}`);
         const data = await res.json();
+
+        if (!data.Attributes?.r?.N) throw new Error('Invalid RPM response');
         return parseInt(data.Attributes.r.N);
     }
 

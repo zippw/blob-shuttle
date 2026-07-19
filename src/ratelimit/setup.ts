@@ -1,8 +1,9 @@
-import { ApiError } from '../shared/ApiError';
 import disableFunction from './disableFunction';
 import telegram from './telegram';
 import RPM from "./rpm";
-import { MAX_RPM } from '../shared/constants';
+
+import { ApiError } from '#shared/ApiError.js';
+import { MAX_RPM } from '#shared/constants.js';
 
 interface StupidYandexRequestContext {
     functionName?: string;

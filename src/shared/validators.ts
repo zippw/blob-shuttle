@@ -30,6 +30,52 @@ export const validatePasscode = (passcode: unknown): string => {
     return passcode;
 }
 
+export const validateFileName = (name: unknown): string => {
+    if (typeof name !== 'string' || name.length === 0)
+        throw ValidationError('Invalid file name.');
+
+    if (name.length > 255)
+        throw ValidationError('File name too long.');
+
+    if (/[<>:"/\\|?*]/.test(name))
+        throw ValidationError('File name contains invalid characters.');
+
+    return name;
+}
+
+export const validateFileSize = (size: unknown): number => {
+    if (typeof size !== 'number' || size <= 0)
+        throw ValidationError('Invalid file size.');
+
+    if (size > MAX_FILE_SIZE) throw ValidationError('File is too big.');
+
+    return size;
+}
+
+export const validateMimeType = (mime: unknown): string => {
+    if (typeof mime !== 'string' || !mime.includes('/'))
+        throw ValidationError('Invalid MIME type.');
+
+    return mime;
+}
+
+export const validateTimestamp = (ts: unknown): number => {
+    const num = Number(ts);
+    if (isNaN(num) || num <= 0)
+        throw ValidationError('Invalid timestamp.');
+
+    return num;
+}
+
+export const validateUrl = (url: unknown): string => {
+    try {
+        const parsed = new URL(String(url));
+        return parsed.toString();
+    } catch {
+        throw ValidationError('Invalid URL.');
+    }
+}
+
 
 /* ----------------- INPUT -----------------*/
 
@@ -57,7 +103,7 @@ export const assertAuthorization = (auth: unknown): Authorization => {
     // AuthorizationByPasscode
     if ('passcode' in auth && !('invite' in auth)) return { passcode: validatePasscode(passcode) };
 
-    throw ValidationError('Invalid authorization format.', 'Invalid authorization payload structure.');
+    throw ValidationError('Invalid authorization.', 'Invalid authorization payload structure.');
 }
 
 export const assertRevealVaultArgs = (body: unknown): RevealVaultArgs => {
@@ -88,12 +134,8 @@ export const assertCreateVaultArgs = (body: unknown): CreateVaultArgs => {
         for (const file of body.files) {
             if (!('size' in file) || !('name' in file)) throw ValidationError('Invalid file data.', 'Missing file params (name or size).');
 
-            if (typeof file.size !== 'number') throw ValidationError('Invalid file size.', `Invalid file size type. size=${file.size}`);
-            if (typeof file.name !== 'string') throw ValidationError('Invalid file name.', `Invalid file name type. name=${file.name}`);
-
-            if (!file.name.length) throw ValidationError('File name is empty.', `name=${file.name}`);
-            if (file.size <= 0) throw ValidationError('Invalid file size.', `File size must be greater than 0. name=${file.name}, size=${file.size}`);
-            if (file.size > MAX_FILE_SIZE) throw ValidationError('File is too big.', `File exceeds MAX_FILE_SIZE. name=${file.name}, size=${file.size}/${MAX_FILE_SIZE}`);
+            validateFileName(file.name);
+            validateFileSize(file.size);
 
             totalFileSize += file.size;
             if (totalFileSize > MAX_BUCKET_SIZE) throw ValidationError('Total size limit exceeded.', `Total file size exceeds maximum bucket size limit. totalFileSize=${totalFileSize}/${MAX_BUCKET_SIZE}`);
@@ -129,17 +171,13 @@ export const assertCreateInviteArgs = (body: unknown): CreateInviteArgs => {
 export const assertRevealVaultResult = (response: unknown): RevealVaultResult => {
     if (!Array.isArray(response)) throw ValidationError('Invalid response format.', 'RevealVault response must be an array of files.');
 
-
     return response.map((file, i) => {
         if (!isObject(file)) throw ValidationError('Invalid file data.', `File token at index ${i} is not a valid object.`);
-        if (typeof file.url !== 'string' || file.url.length === 0) throw ValidationError('Invalid file URL.', `Invalid URL string at file index ${i}. url=${file.url}`);
-        if (typeof file.name !== 'string' || file.name.length === 0) throw ValidationError('Invalid file name.', `Invalid name string at file index ${i}. name=${file.name}`);
-        if (typeof file.size !== 'number' || file.size <= 0) throw ValidationError('Invalid file size.', `Invalid dynamic payload size scale at file index ${i}. size=${file.size}`);
 
         return {
-            url: file.url,
-            name: file.name,
-            size: file.size
+            url: validateUrl(file.url),
+            name: validateFileName(file.name),
+            size: validateFileSize(file.size)
         };
     });
 };
@@ -150,8 +188,7 @@ export const assertCreateVaultResult = (response: unknown): CreateVaultResult =>
 
     const urlMap: Record<string, string> = {};
     for (const [filename, url] of Object.entries(response.url)) {
-        if (typeof url !== 'string') throw ValidationError('Invalid upload link.', `Pre-signed target link for ${filename} must be a string format. url=${url}`);
-        urlMap[filename] = url;
+        urlMap[filename] = validateUrl(url);
     }
 
     return {

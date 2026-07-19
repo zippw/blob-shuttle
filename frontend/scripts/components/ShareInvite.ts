@@ -1,7 +1,8 @@
-import { changeBtnContent, copyToClipboard, setQueryParam } from "../utils";
+import { copyToClipboard, setQueryParam } from "../utils/dom";
+import { changeBtnContent } from "./btn-content-transition";
 import ClientApi from "../ClientApi";
 import { AuthService } from "../AuthService";
-import { validateVaultId } from "../../../src/shared/validators";
+import { validateVaultId } from "@shared/validators";
 
 export default class ShareInvite {
     private static _vault_id: string = null;
@@ -23,16 +24,6 @@ export default class ShareInvite {
     }
 
     private bind() {
-        window.addEventListener('beforeunload', (e) => {
-            // if (ShareInvite.current_vault_id) {
-            //     // Cancel the event
-            //     e.preventDefault(); // If you prevent default behavior in Mozilla Firefox prompt will always be shown
-            //     // Chrome requires returnValue to be set
-            //     e.returnValue = '';
-            //     return 'aboba'
-            // }
-        });
-
         this.btnEl.addEventListener('click', async () => {
             console.debug('[ShareInvite] generating hash link...');
             this.btnEl.disabled = true;

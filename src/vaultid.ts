@@ -1,4 +1,5 @@
 import { createHmac } from 'crypto';
+import { validateVaultId } from '#shared/validators.js';
 
 const rawSecretKey = process.env.VAULT_SECRET_KEY;
 if (!rawSecretKey) throw new Error('No process.env.VAULT_SECRET_KEY configuration found');
@@ -71,7 +72,8 @@ export function generateVaultId(): string {
     // 3. Pack: [ 26 bits time | 6 bits checksum ]
     const packed = ((timeBlock << 6) | checksum) >>> 0;
 
-    return toBase62(feistel(packed, SECRET_KEY, false));
+    const result = toBase62(feistel(packed, SECRET_KEY, false));
+    return validateVaultId(result);
 }
 
 /**

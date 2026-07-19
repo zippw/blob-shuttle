@@ -1,4 +1,4 @@
-import { ValidationError } from "./shared/validators";
+import { ValidationError } from "#shared/validators.js";
 import { Http } from "@yandex-cloud/function-types/dist/src/http";
 
 const bodyCache = new WeakMap<object, unknown>();
