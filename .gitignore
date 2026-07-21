@@ -7,18 +7,18 @@ dist
 /*.js
 /src/views/**/*
 project.md
-storage/
+/storage/
 
 
 
 # frontend/
 # src/static/
-src/views/
+# src/views/
 
-frontend/styles/
-src/static/
+# frontend/styles/
+# src/static/
 # src/infrastructure
 
-frontend/scripts/components
-frontend/scripts/core
-frontend/scripts/utils
+# frontend/scripts/components
+# frontend/scripts/core
+# frontend/scripts/utils

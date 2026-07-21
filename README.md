@@ -16,7 +16,7 @@ Designed to be adaptable: the storage layer and runtime infrastructure are fully
 
 ## why
 
-Share files between devices in 2 clicks. No accounts, no cables, no cleanup.
+because
 
 ---
 
@@ -70,7 +70,7 @@ Share files between devices in 2 clicks. No accounts, no cables, no cleanup.
 4. setup env file (don't forget to remove .example)
 5. install dependencies: `npm i`
 6. build in the correct order:
-   1. `npm run build:frontend` compilest bundle, cleans /dist, copies package.json and static.
+   1. `npm run build:frontend` compiles bundle, cleans /dist, copies package.json and static.
    2. `npm run build:backend` compiles typescript.
 
    or use `npm run build` (if works)
