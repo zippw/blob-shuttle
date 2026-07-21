@@ -1,32 +1,22 @@
 {
     "scripts": {
-        "start": "node .",
-        "build:clean": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\"",
-        "build:frontend": "gulp build",
+        "build:frontend": "node --import tsx build.ts --build",
         "build:backend": "tsc",
-        "copy:static": "node -e \"const fs = require('fs'); fs.cpSync('src/static', 'dist/static', { recursive: true, force: true });\"",
-        "copy:package": "node -e \"const fs = require('fs'); const pkg = require('./package.json'); delete pkg.devDependencies; delete pkg.scripts; if (pkg.imports && pkg.imports['#shared/*.js']) { pkg.imports['#shared/*.js'] = pkg.imports['#shared/*.js'].replace('./src/shared', './shared'); } fs.writeFileSync('dist/package.json', JSON.stringify(pkg, null, 2));\"",
-        "build": "npm run build:clean && npm run build:frontend && npm run build:backend && npm run copy:package && npm run copy:static",
-        "serve": ".\\serve.bat",
-        "server": "cross-env NODE_ENV=development node --env-file=.env --import tsx --watch server.ts"
+        "build": "npm run build:frontend && npm run build:backend",
+        "serve": "cross-env NODE_ENV=development node --import tsx build.ts --watch",
+        "server": "cross-env NODE_ENV=development tsx -r dotenv/config --watch server.example.ts"
     },
     "devDependencies": {
         "@types/express": "^5.0.6",
-        "@types/gulp": "^4.0.18",
-        "@types/gulp-rename": "^2.0.7",
-        "@types/gulp-sass": "^6.0.0",
         "@types/node": "^26.0.1",
+        "@types/pug": "^2.0.10",
         "@yandex-cloud/function-types": "^2.1.2",
         "cross-env": "^10.1.0",
+        "dotenv": "^17.4.2",
         "esbuild": "^0.28.1",
         "esbuild-plugin-tsconfig-paths": "^1.0.2",
         "express": "^5.2.1",
         "fast-glob": "^3.3.3",
-        "gulp": "^5.0.1",
-        "gulp-esbuild": "^0.15.0",
-        "gulp-rename": "^2.1.0",
-        "gulp-sass": "^6.0.1",
-        "gulp-typescript": "^6.0.0-alpha.1",
         "ignore": "^7.0.5",
         "pug": "^3.0.4",
         "sass": "^1.101.0",
@@ -39,7 +29,6 @@
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1075.0",
-        "@aws-sdk/s3-request-presigner": "^3.1075.0",
-        "pug-runtime": "^3.0.1"
+        "@aws-sdk/s3-request-presigner": "^3.1075.0"
     }
 }

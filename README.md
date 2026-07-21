@@ -1,155 +1,90 @@
-# blob-shuttle
+# blob-shuttle <img src="./src/static/icon-192x192.png" width="32" alt="icon" style="vertical-align: middle; margin-left: 8px;">
 
-> personal file transfer tool. no signup, no qr codes, no cloud disk accounts.
+> **🚀 Personal file transfer tool.**  
+> A lightweight PWA that turns any browser into a temporary file hub - no accounts, no cloud storage subscriptions, no USB cables. Drop files, share a 6-character vault ID or an invite link, and let others download (or upload) instantly. Just open, drop, and go.
+
+Designed to be adaptable: the storage layer and runtime infrastructure are fully customizable - write your own driver for S3, local disk, or anything else, and plug it into any serverless platform. Examples included to get you started.
+
+### Screenshots
+
+<p align="center">
+  <img src="./screenshots/1.webp" width="1200" height="800" alt="Screenshot 1" style="margin: 10px;">
+  <img src="./screenshots/2.webp" width="1200" height="800" alt="Screenshot 2" style="margin: 10px;">
+</p>
 
 ---
 
 ## why
 
-When you need to move a file from one device to any other - no USB cables, no multi-factor verification, no logging into cloud drives or messengers, no cleanup afterward. Just open a link, drop the file, and it's there.
+Share files between devices in 2 clicks. No accounts, no cables, no cleanup.
 
 ---
 
 ## stack
 
-- front: pug + scss + ts, gulp, [file-icons-js](https://github.com/exuanbo/file-icons-js)
-- back: ts + node v22, pug-runtime (SSR), @aws-sdk/client-s3 + s3-request-presigner
-- storage: aws s3 (yandex object storage)
-- runtime: yandex cloud functions
+- front: pug + scss + ts, [file-icons-js](https://github.com/exuanbo/file-icons-js)
+- back: ts + Node.js >= 22
+- storage: customizable (aws s3 as an example)
+- runtime: customizable (infrastructure/yandex-cloud/ as an example)
 
 ---
 
 ## how it works
 
 1. open site -> enter passcode (unless you came via authorized invite link)
-2. create vault -> drop files -> upload -> get Vault ID
-3. share invite -> copies link with encrypted token (1h lifetime)
-4. anyone with link can view *and* upload to same vault
-5. reveal vault -> paste 6-char Vault ID -> download files
+2. create vault -> drop files -> upload -> voila!
+3. view vault -> enter 6-char Vault ID -> download any file you want from revealed list.
+4. share vault -> share Vault ID code OR press "Share" to copy link (1h lifetime)
+
+> [!CAUTION]
+> anyone with link or Vault ID can view *and* upload to same vault
 
 ---
 
 ## under the hood
 
-**vault_id** = `[a-zA-Z0-9]{6}` id. generated via feistel network + hmac.  
-26 bits = timestamp (10ms precision), 6 bits = checksum.  
-validates via `decodeVaultId()`.
+- **auth** = two passcode variants from env:
+  - `PASSCODE` - regular passcode, not cached on client;
+  - `LONG_TERM_PASSCODE` - optional, sends `cache_allowed: true` for auto-login localStorage cache.
 
-**invites** = aes-256-gcm. payload: `{ vault_id, expires_at, passcode? }`.  
-if `passcode` included - auto-login. otherwise user types it manually.
+- no automatic cleanup is implemented. You may configure S3 Lifecycle or a separate scheduler.
 
-**auth** = two passcodes from env:
-- `PASSCODE` - regular passcode, not cached on client
-- `LONG_TERM_PASSCODE` - optional, allows `cache_allowed: true` for auto-login via localStorage
-  checked with `crypto.timingSafeEqual`.
+- auth lives in request body (`auth.passcode` / `auth.invite`) and localStorage (if entered with LONG_TERM_PASSCODE).
+  This is done taking into account that some environments may strip authorization headers, cookies, etc.
 
-**s3 presign**:  
-- PUT: 20min (or invite remaining time)  
-- GET: 1min (or invite remaining time)
+- no rate limiting and other security stuff. Recommended using proxy or API Gateway
+  brute-forcing vault_id? `62^6` combos. And still, project is for personal use.
 
----
-
-## notes
-
-- files may auto-delete via s3 lifecycle rules. not handled in code.
-
-- yandex cloud functions strip custom headers and cookies.  
-  auth lives in request body (`auth.passcode` / `auth.invite`) and localStorage.
-
-- invite link gives **upload rights** too. not just view.
-
-- no rate limiting. s3 pays for traffic.
-
-- brute-forcing vault_id? `62^6` combos.
+- `HOST_SPA` flag in `src/shared/constants.ts`. If set to `false`, backend becomes JSON API only - you'll need to host frontend separately. This is not the primary use case.
 
 ---
 
 
-## install
+
+## how to install
+
+1. write infrastructure-specific function adapter (`/src/infrastructure/your-infrastructure/someentryfile`) on GET and POST endpoints.
+   The adapter is responsible for translating incoming cloud requests to the internal Request type and converting the internal Response type to the cloud response format. See `src/infrastructure/drivers/storage/index.example.ts` for a local filesystem example utilizing Express + node:fs.
+2. write your own /src/infrastructure/drivers/storage/index.ts from scratch or use finished s3 driver
+3. adjust constants in `src/shared/constants.ts`
+4. setup env file (don't forget to remove .example)
+5. install dependencies: `npm i`
+6. build in the correct order:
+   1. `npm run build:frontend` compilest bundle, cleans /dist, copies package.json and static.
+   2. `npm run build:backend` compiles typescript.
+
+   or use `npm run build` (if works)
+
+## how to run example
 
 1. create a bucket in yandex object storage
 2. create a service account with `storage.uploader`, `storage.viewer`, and `storage.editor` roles.
 3. generate a static access key for it.
-4. adjust constants in `src/shared/constants.ts` (file size, count, etc.)
-5. setup env (see below)
-6. run `npm i`
-
-## env
-
-```env
-# s3 access
-STATIC_KEY_ID=...
-STATIC_KEY_SECRET=...
-
-# passcodes
-PASSCODE=my_cool-passcode1234
-LONG_TERM_PASSCODE=my_password_that_can_be_cached_on_the_client_for_auto-login_1234
-
-# internal hashing keys
-ENCRYPTION_KEY=8a...7
-VAULT_SECRET_KEY=88...b
-```
-
-generate random 32 byte hex key:
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-don't forget to remove .example from .env.example file.
-
-
-
-## run locally
-
-```ts
-// server.ts
-import express from 'express';
-import { handler } from './src';
-
-const app = express();
-const PORT = 8080;
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.all('/function', async (req, res) => {
-    const result = await handler({
-        httpMethod: req.method,
-        headers: req.headers,
-        queryStringParameters: req.query,
-        body: typeof req.body === 'object' ? JSON.stringify(req.body) : req.body
-    }, {})
-
-    if (result.statusCode) res.status(result.statusCode);
-    if (result.headers) Object.entries(result.headers).forEach(([k, v]) => res.append(k, v));
-    if (result.body) res.send(result.body);
-    else res.end()
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`http://localhost:${PORT}`)
-});
-```
-
-```bash
-npm run build
-```
-
-
-## deploy
-windows:
-1. compile:
-    ```bash
-    npm run build:clean
-    npm run build:frontend
-    npm run build:backend
-    npm run build:package
-    ```
-    or for windows:
-    ```bash
-    npm run build
-    ```
-2. create node.js yandex node.js serverless function
-3. upload `/dist` as ZIP to yandex cloud function
-4. set entry point: `index.handler`
-5. set all .env variables
+4. use example drivers, infrastructure wrapper
+5. adjust constants in `src/shared/constants.ts`
+6. setup env file (don't forget to remove .example)
+7. run `npm i`
+   - terminal 1: `npm run serve` (frontend)
+   - terminal 2: `npm run server` (backend)
+        This runs `server.example.ts` - a local Express server that emulates Yandex Cloud Functions.
+        It serves the API at `/files` and mounts the storage router from `index.example.ts`.

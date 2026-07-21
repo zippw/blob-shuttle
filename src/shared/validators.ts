@@ -188,7 +188,7 @@ export const assertCreateVaultResult = (response: unknown): CreateVaultResult =>
 
     const urlMap: Record<string, string> = {};
     for (const [filename, url] of Object.entries(response.url)) {
-        urlMap[filename] = validateUrl(url);
+        urlMap[validateFileName(filename)] = validateUrl(url);
     }
 
     return {

@@ -1,0 +1,126 @@
+doctype html
+html(lang="en")
+    -
+        const api_url = env.NODE_ENV === 'development' ? env.DEV_FUNCTION_URL : env.FUNCTION_URL;
+        const assets_url = consts.HOST_SPA ? `${api_url}?path=static&file=` : './';
+
+
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1.0")
+        title BLOB-SHUTTLE
+
+        link(rel="icon" type="image/png" href!=encodeURI(`${assets_url}icon-192x192.png`))
+        link(rel="apple-touch-icon" href!=encodeURI(`${assets_url}icon-192x192.png`))
+
+        -
+            const manifest = {
+                name: "blob-shuttle",
+                short_name: "bs",
+                display: "standalone",
+                background_color: "#020303",
+                theme_color: "#9b6cf0",
+                orientation: "natural",
+                start_url: consts.HOST_SPA ? api_url : '.',
+                icons: [{
+                    src: `${assets_url}icon-192x192.png`,
+                    sizes: "192x192",
+                    type: "image/png"
+                }],
+                share_target: {
+                    action: encodeURI(`${api_url}?path=share_target`),
+                    method: "POST",
+                    enctype: "multipart/form-data",
+                    params: {
+                        files: [{
+                            name: "media",
+                            accept: ["*/*"]
+                        }]
+                    }
+                }
+            }
+
+        link(rel="manifest" href=`data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`)
+
+        link(href="https://cdn.jsdelivr.net/npm/@exuanbo/file-icons-js@latest/dist/css/file-icons.min.css" rel="stylesheet")
+        style
+            :css(path="frontend/styles/main.scss")
+
+    body
+        .main-wrapper
+
+            main
+                .form-wrapper.create-block
+                    form#create
+
+                        input#files_input.drop-zone__input(
+                            accept
+                            multiple type="file"
+                            disabled=true
+                            tabindex="-1"
+                            data-max-file-count=consts.MAX_FILE_COUNT
+                            data-max-file-size=consts.MAX_FILE_SIZE
+                        )
+                        label#files_dropzone.drop-zone(for="files_input")
+                            h1 Drop files here, or click to choose
+                            h2 Max file size: #{formatted.MAX_FILE_SIZE}. Maximum #{consts.MAX_FILE_COUNT} files.
+                            small.error X
+                        .upload-box
+                            button#upload_files_btn.main(
+                                disabled=true
+                                tabindex="-1"
+                                data-content-transition
+                            )
+                                span.content-old Upload
+                                span.content-new.is-hidden
+                .sep
+
+                .form-wrapper.reveal-block
+
+                    form#reveal
+                        h1 Enter Vault ID
+                        h2 to download files
+                        .code-container#vault_id_pincodeinput
+                            each v in new Array(6).fill(null)
+                                input.code-input.main.error_animation(type="text" maxlength="1" autocomplete="off" disabled=true value=v)
+
+                        small.error X
+
+                    .file-container-wrapper
+                        .nav
+                            .left
+                                code#keypath
+                            .right
+                                button.main#share(
+                                    disabled=true
+                                    tabindex="-1"
+                                        data-content-transition
+                                )
+                                    span.content-old Share
+                                    span.content-new.is-hidden
+
+                        .file-container#files_container.scrollable
+
+                .form-wrapper.login-block
+                    form#auth
+                        h1 Enter Passcode
+                        h2 to use this application
+                        .input-grp
+                            input#passcode.main.error_animation(type="password" placeholder="Passcode")
+                            button#passcode_btn.main(type="submit" data-wavy) Enter
+                        small.error X
+
+            .background #[canvas#nebulaCanvas]
+
+
+    script(type="module").
+        import icons from 'https://cdn.jsdelivr.net/npm/@exuanbo/file-icons-js@latest/dist/js/file-icons.esm.min.js'
+        window.getClass = icons.getClass;
+
+    script.
+        window.locals = {
+            api_url: '!{api_url}'
+        }
+
+    script
+        :js(path="frontend/scripts/main.ts")

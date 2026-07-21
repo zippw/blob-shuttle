@@ -1,5 +1,17 @@
+interface BaseVaultFile {
+    // filename (e.x. "image.png")
+    name: string;
+    // file size in bytes
+    size: number;
+}
+
+// Передаем объект с флагом. По умолчанию с url
+export type VaultFile<Config extends { withUrl: boolean } = { withUrl: true }> =
+    BaseVaultFile & (Config['withUrl'] extends true ? { url: string } : { url?: string });
+
+/* REQUESTS */
 export type Authorization = AuthorizationByRootInvite | AuthorizationByInvite | AuthorizationByPasscode;
-type AuthorizedRequest = { auth: Authorization; }
+export type AuthorizedRequest = { auth: Authorization; }
 
 // invite with embedded passcode doesn't require passcode field.
 // Invite purpose is to autofill inputs.
@@ -10,23 +22,14 @@ interface AuthorizationByPasscode { passcode: string; }
 
 /* ?path=reveal-vault */
 export interface RevealVaultArgs extends AuthorizedRequest { vault_id: string; }
-export type RevealVaultResult = VaultFile[];
-
-interface VaultFile {
-    // pre signed S3 GetObject
-    url: string;
-    // filename (e.x. "image.png")
-    name: string;
-    // file size in bytes
-    size: number;
-}
+export type RevealVaultResult = VaultFile<{ withUrl: true }>[];
 
 
 /* ?path=create-vault */
 export interface CreateVaultArgs extends AuthorizedRequest {
     // optional vault_id. If no vault_id was passed - server will generate random.
     vault_id?: string;
-    files: { name: string; size: number }[];
+    files: VaultFile<{ withUrl: false }>[];
 }
 
 export type CreateVaultResult = {
@@ -55,3 +58,45 @@ export interface StructuredApiErr {
 
     type: string
 }
+
+
+
+
+
+
+
+
+
+
+/* ----------------- HTTP Function Handler ----------------- */
+export interface RequestQuery {
+    path?: string;
+    invite?: string;
+    file?: string;
+    [key: string]: string | undefined;
+}
+
+export interface Request {
+    // 'GET' | 'POST'
+    method: string;
+    query: RequestQuery;
+    body?: unknown;
+
+    middleware?: () => Promise<void>
+}
+
+
+type ResponseBody = CheckAuthResult | CreateVaultResult | RevealVaultResult | CreateInviteResult | string | StructuredApiErr;
+interface Response {
+    status: number;
+    body: ResponseBody;
+    isBase64Encoded?: boolean;
+    // headers?: {
+    //     'Content-Type'?: 'application/json' | 'image/png' | 'application/javascript' | 'text/html; charset=UTF-8';
+    //     'Content-Security-Policy'?: string;
+    //     'Cache-Control'?: string;
+    // }
+    headers?: Record<string, string>
+}
+
+export type FunctionHandler = (req: Request) => Promise<Response>

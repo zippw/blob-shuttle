@@ -3,7 +3,7 @@
  */
 export const registerSW = () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('?path=static&file=sw.js', { scope: '/' })
+        navigator.serviceWorker.register(`${window.locals.api_url}?path=static&file=sw.js`, { scope: '/' })
             .then(() => console.log('SW registered successfully.'))
             .catch(err => console.error('SW registration failed:', err));
     }

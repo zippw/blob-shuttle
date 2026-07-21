@@ -1,31 +1,27 @@
-import { Handler } from '@yandex-cloud/function-types';
 import { renderFileRuntime } from './renderer';
 import { decodeInviteHash, extractInviteToken } from './invite';
-import { parseJSONBody } from './utils';
 import { createInvite, createVault, revealVault, checkAuth } from './routes';
 import { verifySessionAuthority } from './auth';
+import { SessionContext, sessionStorage } from './session';
 
 import * as consts from '#shared/constants.js';
-import { StructuredApiErr } from '#shared/schema.js';
+import { FunctionHandler } from '#shared/schema.js';
 import { validateFileName } from '#shared/validators.js';
 import { ApiError } from '#shared/ApiError.js';
-
-import { SessionContext, sessionStorage } from './session';
-import rpm_run from './ratelimit/setup';
 
 import path from 'node:path';
 import fs from 'node:fs';
 
-export const handler: Handler.Http = async (event, context) => {
+export const fn: FunctionHandler = async (req) => {
     try {
-        const method = event.httpMethod;
-        const query = event.queryStringParameters || {};
-        const bodyJSON = parseJSONBody(event); // yandex cloud specific parsing method
+        const method = req.method;
+        const query = req.query;
+        const body = req.body;
 
-        const inviteHash = extractInviteToken(query, bodyJSON);
+        const inviteHash = extractInviteToken(query, body);
         const decodedInvite = inviteHash ? decodeInviteHash(inviteHash) : { is_valid: false as const };
 
-        const { authorized, verifiedPasscode, isManual, cache_allowed } = verifySessionAuthority(bodyJSON, decodedInvite);
+        const { authorized, verifiedPasscode, isManual, cache_allowed } = verifySessionAuthority(body, decodedInvite);
         const sessionContext: SessionContext = {
             session: {
                 authorized, cache_allowed: authorized ? cache_allowed : false,
@@ -36,26 +32,22 @@ export const handler: Handler.Http = async (event, context) => {
                 vault_id: decodedInvite.vault_id,
                 expires_at: decodedInvite.expires_at,
                 expires_in_sec: decodedInvite.expires_in_sec
-            } : {
-                is_valid: false
-            }
+            } : { is_valid: false }
         };
 
         return sessionStorage.run(sessionContext, async () => {
             try {
                 console.log(`${method} ?path=${query.path || ''}. Auth=${authorized}`, sessionContext.invite);
 
-                /* rate limitting */
-                if (process.env.NODE_ENV !== 'development' && consts.MAX_RPM !== -1) await rpm_run(context as any);
+                if (req.middleware) await req.middleware();
 
                 /* static logic (pwa purpose) */
-                if (consts.ENABLE_STATIC && query.path === 'static' && query.file) {
+                if (consts.HOST_SPA && query.path === 'static' && query.file) {
                     const fileName = validateFileName(path.basename(query.file));
                     if (!/^[a-zA-Z0-9._-]+$/.test(fileName)) throw Error('Invalid file name');
                     const filePath = path.join(__dirname, 'static', fileName);
 
-                    const notFoundErr: StructuredApiErr = { error: 'Not Found.', details: `File doesn't exist`, type: 'NOTFOUND' }
-                    if (!fs.existsSync(filePath)) return { statusCode: 404, body: JSON.stringify(notFoundErr) }
+                    if (!fs.existsSync(filePath)) throw new ApiError({ error: `File doesn't exist`, type: 'NOTFOUND' })
 
                     const ext = path.extname(filePath).toLowerCase();
                     const contentType = {
@@ -65,7 +57,7 @@ export const handler: Handler.Http = async (event, context) => {
                     const file = await fs.readFileSync(filePath);
 
                     return {
-                        statusCode: 200,
+                        status: 200,
                         body: file.toString('base64'),
                         isBase64Encoded: true,
                         headers: {
@@ -79,27 +71,28 @@ export const handler: Handler.Http = async (event, context) => {
 
 
                 /* main */
-                if (method === 'GET') return {
-                    statusCode: 200, body: await renderFileRuntime('./views/authorized.js', { authorized, consts, sessionContext }),
-                    headers: {
+                if (consts.HOST_SPA && method === 'GET') return {
+                    status: 200, body: await renderFileRuntime('./views/index.html', {
+                        self: true,
+                        consts
+                    }), headers: {
                         'Content-Type': 'text/html; charset=UTF-8',
-                        'Content-Security-Policy': 'worker-src \'self\' blob: data:;'
+                        'Content-Security-Policy': 'worker-src \'self\' blob: data:;',
+                        ...consts.STATIC_CACHE_CONTROL
+                            ? { 'Cache-Control': consts.STATIC_CACHE_CONTROL }
+                            : {}
                     }
                 }
 
-                if (!authorized) {
-                    const err: StructuredApiErr = { error: 'Authentication failed.', details: 'Missing token or invalid credentials.', type: 'UNAUTHORIZED' }
-                    return { statusCode: 401, body: JSON.stringify(err) };
-                }
+                if (!authorized) throw new ApiError({ error: 'Authentication failed.', details: 'Missing token or invalid credentials.', type: 'UNAUTHORIZED' });
 
                 // authorized endpoints
-                if (method === 'POST' && query.path === 'check-auth') return await checkAuth(event, context);
-                if (method === 'POST' && query.path === 'create-vault') return await createVault(event, context);
-                if (method === 'POST' && query.path === 'reveal-vault') return await revealVault(event, context);
-                if (method === 'POST' && query.path === 'create-invite') return await createInvite(event, context);
+                if (method === 'POST' && query.path === 'check-auth') return await checkAuth(req);
+                if (method === 'POST' && query.path === 'create-vault') return await createVault(req);
+                if (method === 'POST' && query.path === 'reveal-vault') return await revealVault(req);
+                if (method === 'POST' && query.path === 'create-invite') return await createInvite(req);
 
-                const notFoundErr: StructuredApiErr = { error: 'Not Found.', details: `Endpoint doesn't exist`, type: 'NOTFOUND' }
-                return { statusCode: 404, body: JSON.stringify(notFoundErr) };
+                throw new ApiError({ error: `Endpoint doesn't exist`, type: 'NOTFOUND' });
 
             } catch (innerErr) {
                 return formatServerErrorResponse(innerErr)
@@ -129,28 +122,26 @@ function formatServerErrorResponse(err: unknown) {
             'UNEXPECTED': 500
         }
 
-        let statusCode: number = 500;
-        if (codes[err.type]) statusCode = codes[err.type];
-
-        console.error(err.type, err.details);
+        let status: number = 500;
+        if (codes[err.type]) status = codes[err.type];
 
         return {
-            statusCode,
+            status,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: err.error, type: err.type })
+            body: { error: err.error, type: err.type }
         };
     }
 
-    const rawMessage = err instanceof Error ? err.message : String(err);
     console.error(`[Server CRITICAL CRASH]:`, err);
+    const rawMessage = err instanceof Error ? err.message : String(err);
 
     return {
-        statusCode: 500,
+        status: 500,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
             error: 'Internal Server Error',
             details: rawMessage,
             type: 'SERVER_CRASH'
-        })
+        }
     };
 }

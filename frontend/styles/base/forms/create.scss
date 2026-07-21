@@ -65,10 +65,9 @@ form#create {
         }
 
         &.drop-zone--hover {
-            // border-color: $purple;
             cursor: copy;
             color: $bg;
-            background-color: $purple;
+            background-color: $purple !important;
             animation: 2s glowing infinite;
 
             h1,

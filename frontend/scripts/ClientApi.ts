@@ -12,8 +12,6 @@ import {
 import { ApiError } from '@shared/ApiError';
 
 export default class ClientApi {
-    private static readonly endpoint: string = window.location.origin;
-
     public static async revealVault(bodyRaw: RevealVaultArgs): Promise<RevealVaultResult> {
         const body = assertRevealVaultArgs(bodyRaw);
         const data = await this.sendJSONPostRequest('reveal-vault', body);
@@ -38,10 +36,8 @@ export default class ClientApi {
         return assertCheckAuthResult(data);;
     }
 
-
-
     private static async sendJSONPostRequest(path: string, body: unknown) {
-        const url = `${this.endpoint}${window.location.pathname}?path=${path}`;
+        const url = `${window.locals.api_url}?path=${path}`;
         try {
             const r = await fetch(url, {
                 method: 'POST',

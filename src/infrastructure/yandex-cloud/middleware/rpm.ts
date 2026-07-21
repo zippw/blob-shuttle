@@ -1,3 +1,57 @@
+import Context from '@yandex-cloud/function-types/dist/src/context';
+import disableFunction from './utils/disableFunction';
+import telegram from './utils/telegram';
+import { ApiError } from '#shared/ApiError.js';
+
+interface StupidYandexTyping extends Context {
+    functionFolderId?: string;
+}
+
+let blockedUntil: number | null = null;
+export const setup_rpm = async (context: StupidYandexTyping, MAX_RPM: number) => {
+    const token = context?.token?.access_token;
+    const functionId = context.functionName;
+    const folderId = context.functionFolderId;
+    const ydb_endpoint = process.env.ydb_endpoint;
+
+    if (typeof token !== 'string' || !token.length) throw new Error('Invalid token');
+    if (typeof functionId !== 'string' || !functionId.length) throw new Error('Invalid functionId');
+    if (typeof folderId !== 'string' || !folderId.length) throw new Error('Invalid folderId');
+    if (typeof ydb_endpoint !== 'string' || !ydb_endpoint.length) throw new Error('Invalid env ydb_endpoint');
+
+    const now = Date.now();
+    if (typeof blockedUntil === 'number' && now <= blockedUntil) throw new ApiError({
+        error: 'Too many requests',
+        details: `blockedUntil=${blockedUntil};timeleft=${blockedUntil - now}`,
+        type: 'UNEXPECTED'
+    });
+
+    await new RPM({
+        token, triggers: [{
+            // disableFunction RPM trigger threshold
+            condition: (rpm) => rpm >= MAX_RPM && (rpm - MAX_RPM) % MAX_RPM === 0,
+            callback: async (rpm) => {
+                blockedUntil = now + (2 * 60 * 1000);
+                await disableFunction(token, functionId);
+                await telegram.send(`[fdis] (blob-shuttle) success https://console.yandex.cloud/folders/${folderId}/functions/functions/${functionId}/overview`);
+            }
+        }], database: {
+            endpoint: ydb_endpoint,
+            tableName: 'prod/zw-space-api-requests',
+            rpmKeyPrefix: 'bs'
+        }
+    }).execute('DB').catch(err => {
+        throw new ApiError({
+            error: 'RPM Error',
+            details: (err instanceof Error ? err.message : String(err)) || 'unknown error',
+            type: 'UNEXPECTED'
+        })
+    });
+}
+
+
+
+
 interface RPMOptions {
     // IAM yandex cloud token
     token: string;
@@ -14,7 +68,7 @@ interface RPMOptions {
     }
 }
 
-export default class RPM {
+class RPM {
     private readonly options: RPMOptions;
 
     constructor(options: RPMOptions) {

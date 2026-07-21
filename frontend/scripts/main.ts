@@ -8,6 +8,12 @@ import { AuthService } from "./AuthService";
 import { registerSW, checkSharedFiles } from "./sw";
 registerSW();
 
+declare global {
+    var locals: {
+        api_url: string;
+    }
+}
+
 let isThrottling = false;
 
 // Handle canvas responsive sizing and animations based on device orientation

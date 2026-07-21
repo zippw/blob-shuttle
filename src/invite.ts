@@ -2,6 +2,7 @@
 import * as crypto from 'crypto';
 import { validateVaultId, isObject, validateTimestamp } from '#shared/validators.js';
 import { sessionStorage } from './session';
+import { RequestQuery } from '#shared/schema.js';
 
 const ENCRYPTION_SECRET = process.env.ENCRYPTION_KEY;
 const ALGORITHM = 'aes-256-gcm';
@@ -88,11 +89,11 @@ export function createSessionInviteToken(targetVaultId: string): string {
 }
 
 
-export function extractInviteToken(query: Record<string, string>, bodyJSON: unknown): string | undefined {
+export function extractInviteToken(query: RequestQuery, body: unknown = undefined): string | undefined {
     if (query?.invite) return query.invite;
 
-    if (isObject(bodyJSON) && isObject(bodyJSON.auth) && typeof bodyJSON.auth.invite === 'string')
-        return bodyJSON.auth.invite;
+    if (body !== undefined && isObject(body) && isObject(body.auth) && typeof body.auth.invite === 'string')
+        return body.auth.invite;
 
     return undefined;
 }
