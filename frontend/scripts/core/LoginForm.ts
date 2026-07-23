@@ -4,6 +4,8 @@ import { validatePasscode } from "@shared/validators";
 import { AuthService } from "../AuthService";
 import ShareInvite from "../components/ShareInvite";
 import ClientApi from "../ClientApi";
+import UIGroup from "../components/UIGroup";
+import { setQueryParam } from "../utils/dom";
 
 export default class LoginForm {
     private readonly passcode_input: HTMLInputElement;
@@ -12,6 +14,8 @@ export default class LoginForm {
     private readonly error_el: HTMLElement;
     private readonly onLogin: () => void;
 
+    private uiGroup: UIGroup;
+
     constructor(onLogin = () => { }) {
         this.onLogin = onLogin;
 
@@ -19,6 +23,8 @@ export default class LoginForm {
         this.passcode_input = document.getElementById('passcode') as HTMLInputElement;
         this.passcode_btn = document.getElementById('passcode_btn') as HTMLButtonElement;
         this.error_el = this.loginForm.querySelector('small.error') as HTMLElement;
+
+        this.uiGroup = new UIGroup('login-form');
 
         // if the server already authorized this session (e.g. valid invite link with a password embedded)
         if (document.body.classList.contains('authorized')) {
@@ -31,18 +37,12 @@ export default class LoginForm {
         this.autoLogin();
     }
 
-    public disableForm(toDisable: boolean): void {
-        console.debug(`[LoginForm] setting inputs disabled state to: ${toDisable}`);
-        this.passcode_btn.disabled = toDisable;
-        this.passcode_input.disabled = toDisable;
-    }
-
     /**
      * Performs automatic sign-in if a passcode is cached in localStorage or local memory
      */
     private async autoLogin(): Promise<void> {
         const authData = await AuthService.getAuth();
-        if ('passcode' in authData && authData.passcode !== undefined) {
+        if (('passcode' in authData && authData.passcode !== undefined) || 'invite' in authData) {
             console.debug('[LoginForm] attempting auto login');
             this.passcode_input.value = '********';
             this.onSubmit(false)
@@ -51,7 +51,7 @@ export default class LoginForm {
 
     private async onSubmit(isManual: boolean = false) {
         this.loginForm.classList.remove('error');
-        this.disableForm(true);
+        this.uiGroup.disableAll(true);
 
         let passcode: string;
         try {
@@ -64,14 +64,18 @@ export default class LoginForm {
             console.debug('[LoginForm] sending check-auth...', { isManual });
 
             if (isManual) AuthService.passcode = passcode;
-            const { cache_allowed } = await ClientApi.checkAuth({ auth: await AuthService.getAuth() });
+            const { cache_allowed, invite_vault_id } = await ClientApi.checkAuth({ auth: await AuthService.getAuth() });
 
             console.debug('[LoginForm] check-auth OK');
 
             if (cache_allowed) AuthService.save();
+            if (invite_vault_id) {
+                ShareInvite.current_vault_id = invite_vault_id;
+            } else {
+                setQueryParam('invite', null)
+            }
 
-            ShareInvite.current_vault_id = document.body.getAttribute('data-current_vault_id');
-            this.disableForm(true);
+            this.uiGroup.disableAll(true);
 
             document.body.classList.add('authorized');
             this.onLogin();
@@ -89,7 +93,7 @@ export default class LoginForm {
             } else this.error_el.innerText = 'Unexpected Error';
 
             AuthService.clear();
-            this.disableForm(false);
+            this.uiGroup.disableAll(false);
             this.passcode_input.focus();
             this.passcode_input.value = '';
             this.loginForm.classList.add('error');

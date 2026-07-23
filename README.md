@@ -7,10 +7,28 @@ Designed to be adaptable: the storage layer and runtime infrastructure are fully
 
 ### Screenshots
 
-<p align="center">
-  <img src="./screenshots/1.webp" width="1200" height="800" alt="Screenshot 1" style="margin: 10px;">
-  <img src="./screenshots/2.webp" width="1200" height="800" alt="Screenshot 2" style="margin: 10px;">
-</p>
+<table align="center">
+  <tr>
+    <td width="50%" align="center">
+      <img src="./screenshots/0.png" alt="Screenshot 1"><br>
+      <sub><b>0. Login</b></sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="./screenshots/1.png" alt="Screenshot 2"><br>
+      <sub><b>1. Upload / Enter Vault ID</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./screenshots/2.png" alt="Screenshot 3"><br>
+      <sub><b>2. Check files</b></sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="./screenshots/3.png" alt="Screenshot 4"><br>
+      <sub><b>3. Share vault</b></sub>
+    </td>
+  </tr>
+</table>
 
 ---
 

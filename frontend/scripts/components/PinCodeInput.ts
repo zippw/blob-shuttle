@@ -15,7 +15,6 @@ export default class PinCodeInput {
     private readonly inputs: NodeListOf<HTMLInputElement>;
 
     private _value: string = '';
-    private _disabled: boolean = false;
     private _listeners: Array<{
         input: HTMLInputElement;
         onInput: (e: Event) => void;
@@ -154,18 +153,6 @@ export default class PinCodeInput {
         });
 
         this.syncValue();
-    }
-
-    public set disabled(toDisable: boolean) {
-        this._disabled = toDisable;
-        this.inputs.forEach(input => {
-            input.disabled = toDisable;
-            input.setAttribute('tabindex', toDisable ? '-1' : '0');
-        });
-    }
-
-    public get disabled(): boolean {
-        return this._disabled;
     }
 
     public get isValid(): boolean { return this.isValidInput(this._value); }

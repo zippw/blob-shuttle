@@ -2,6 +2,8 @@
 @use '../../vars/easings.scss' as *;
 @use '../../utils/box-spacing.scss' as *;
 @use '../../utils/safe-area.scss' as *;
+@use '../../utils/custom-input.scss' as *;
+@use "sass:color";
 
 form#reveal {
     display: flex;
@@ -57,90 +59,242 @@ main .form-wrapper.reveal-block {
             pointer-events: auto;
             opacity: 1;
         }
-
-        .nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 2rem;
-            flex-shrink: 0;
-            border-bottom: 1px solid $bg_light;
-            padding: 1rem 2.5rem;
-            // padding: 1rem;
-
-            .right {
-                display: inline-flex;
-                align-items: baseline;
-                gap: 1rem;
-            }
-        }
     }
 
     .file-container {
-        display: grid;
         @include box-spacing(0, 32px);
-        $gap: .2rem;
-        gap: $gap;
-        column-gap: $gap;
-        row-gap: $gap;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        grid-auto-rows: max-content;
-        justify-content: center;
 
         width: 100%;
         flex-shrink: 1;
-        padding: 1rem calc(2.5rem - 8px);
+        padding: 1rem 2.5rem;
 
         overflow-y: auto;
         width: 100%;
         height: 100%;
 
-        a {
-            display: flex;
-            align-items: center;
-            padding: 4px 8px;
+        &__panel {
             width: 100%;
-            color: $text;
-            text-decoration: none;
-            overflow: hidden;
-            gap: 0.5rem;
-            transition: .1s;
+            display: flex;
+            flex-wrap: wrap;
 
-            .name {
+            font-size: .8rem;
+            margin-bottom: 16px;
+            gap: 4px;
+
+            .group {
                 display: flex;
                 align-items: center;
-                min-width: 0;
-                flex: 1;
+                gap: 4px;
 
-                &>span:last-child {
-                    white-space: nowrap;
+                &__search {
+                    flex-grow: 1;
+                    max-width: 1200px;
+                    min-width: fit-content;
+
+                    input[type="text"] {
+                        min-width: fit-content;
+                        width: 100%;
+                    }
+                }
+
+                &__other {
+                    flex-grow: 1;
+                    justify-content: space-between;
                     overflow: hidden;
-                    text-overflow: ellipsis;
-                }
+                    overflow-x: auto;
 
-                &>span.icon {
-                    margin-right: 0.4rem;
-                    flex-shrink: 0;
+                    select {
+                        width: 100%;
+                        flex-grow: 1;
+                        min-width: fit-content
+                    }
+
+                    .radio {
+                        flex-shrink: 0;
+                    }
                 }
             }
 
-            .size {
-                color: $muted;
-                font-size: 0.85rem;
-                white-space: nowrap;
-                flex-shrink: 0;
+            button {
+                width: fit-content;
             }
+        }
 
-            &:hover {
-                background: $text;
-                color: $bg;
+        &__grid {
+            $gap: .2rem;
+            gap: $gap;
+
+            a {
+                display: flex;
+                align-items: center;
+                padding: 4px 8px;
+                width: 100%;
+                color: inherit;
+                text-decoration: none;
+                overflow: hidden;
+                gap: 0.5rem;
                 border-radius: 4px;
-                transition: 0s;
+                transition: background-color .1s, color .1s;
+                animation: fadeSlideIn 0.2s ease backwards;
+                animation-delay: calc(var(--i, 0) * 0.03s);
+
+                .file-icon:before {
+                    color: auto !important;
+                }
+
+                .name {
+                    display: flex;
+                    align-items: center;
+                    min-width: 0;
+                    flex: 1;
+
+                    strong {
+                        color: $purple;
+                    }
+
+                    &>span.filename {
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    &>span.icon {
+                        margin-right: 0.4rem;
+                        flex-shrink: 0;
+                    }
+                }
 
                 .size {
-                    color: inherit;
+                    color: $muted;
+                    font-size: 0.85rem;
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                }
+
+                &:hover {
+                    background: $bg_light;
+                    transition: 0s;
+                }
+            }
+
+            &.--rows {
+                display: flex;
+                flex-direction: column;
+            }
+
+            &.--table {
+                display: grid;
+                justify-content: center;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                column-gap: $gap;
+                row-gap: $gap;
+                grid-auto-rows: max-content;
+            }
+
+            &.--grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+
+                a {
+                    position: relative;
+                    width: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    border: 1px solid $bg;
+                    padding: 2rem;
+
+                    .name {
+                        height: fit-content;
+                        width: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+
+                        .filename {
+                            width: 100%;
+                            text-align: center;
+                            overflow: hidden;
+                        }
+
+                        .file-icon {
+                            margin-right: 0;
+                            margin-bottom: .2rem;
+
+                            &:before {
+                                font-size: 1.5rem;
+                            }
+                        }
+                    }
+
+                    &:hover {
+                        border-color: $transparentize_muted_50;
+                    }
                 }
             }
         }
+
+        &__nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-shrink: 0;
+            border-bottom: 1px solid $bg_light;
+            padding: 1rem 2.5rem;
+
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            // padding: 1rem;
+
+            .side {
+                display: inline-flex;
+                align-items: baseline;
+                gap: 1rem;
+
+                grid-column: span 1;
+
+
+                &.center {
+                    min-width: max-content;
+
+                    justify-content: center;
+                    text-align: center;
+
+                    .copy-input-wrapper {
+                        display: inline-flex;
+                        width: auto;
+
+                        input {
+                            width: 48px;
+                            flex-grow: 0;
+                        }
+                    }
+                }
+
+                &.right {
+                    justify-content: flex-end;
+                }
+            }
+        }
+
+    }
+}
+
+
+
+
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

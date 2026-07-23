@@ -2,15 +2,18 @@
 @use './vars/colors.scss' as *;
 @use './vars/easings.scss' as *;
 
+
+@use './utils/defaults.scss';
 @use './utils/box-spacing.scss' as *;
 @use './utils/safe-area.scss' as *;
 
-@use './base/ui/buttons.scss';
-@use './base/ui/inputs.scss';
+@use './base/ui/main.scss';
+@use './base/ui/panel.scss';
 @use './base/ui/scroll.scss';
 
 @use './base/layout.scss';
 @use './base/forms.scss';
+@use './base/share.scss';
 @use './base/forms/create.scss';
 @use './base/forms/reveal.scss';
 @use './base/forms/auth.scss';
@@ -20,6 +23,7 @@
 @use './components/button-content-transition.scss';
 @use './components/button-wavy.scss';
 @use './components/progress-ring.scss';
+@use './components/CopyInput.scss';
 
 @use './themes/file-colors.scss';
 
@@ -36,6 +40,7 @@ html {
 
 
 body {
+    position: relative;
     background: $bg_dark;
     color: $text;
     padding: 0;

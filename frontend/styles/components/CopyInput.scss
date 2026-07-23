@@ -1,0 +1,21 @@
+.copy-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    input {
+        width: 100%;
+        border-top-right-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        text-overflow: ellipsis;
+        position: relative;
+    }
+
+    button {
+        border-top-left-radius: 0 !important;
+        border-bottom-left-radius: 0 !important;
+        position: relative;
+        z-index: 0;
+        flex-shrink: 0;
+    }
+}

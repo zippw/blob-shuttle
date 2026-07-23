@@ -1,3 +1,6 @@
+//- data-ui-group attr: control multiple elements (disable/enable all)
+//- data-ui-id attr: control unique elements separately
+
 doctype html
 html(lang="en")
     -
@@ -47,13 +50,15 @@ html(lang="en")
             :css(path="frontend/styles/main.scss")
 
     body
+        .modal__overlay#modals
+
         .main-wrapper
 
             main
                 .form-wrapper.create-block
                     form#create
-
                         input#files_input.drop-zone__input(
+                            data-ui-group="create-form"
                             accept
                             multiple type="file"
                             disabled=true
@@ -67,47 +72,91 @@ html(lang="en")
                             small.error X
                         .upload-box
                             button#upload_files_btn.main(
+                                data-ui-group="create-form"
+                                data-ui-id="create-form-upload-btn"
                                 disabled=true
                                 tabindex="-1"
                                 data-content-transition
                             )
                                 span.content-old Upload
                                 span.content-new.is-hidden
+
                 .sep
 
                 .form-wrapper.reveal-block
-
                     form#reveal
                         h1 Enter Vault ID
                         h2 to download files
                         .code-container#vault_id_pincodeinput
                             each v in new Array(6).fill(null)
-                                input.code-input.main.error_animation(type="text" maxlength="1" autocomplete="off" disabled=true value=v)
+                                input.code-input.main.error_animation(
+                                    type="text" maxlength="1" autocomplete="off" value=v
+                                    disabled=true tabindex="-1"
+                                    data-ui-group="reveal-form-entrance"
+                                )
 
                         small.error X
 
                     .file-container-wrapper
-                        .nav
-                            .left
-                                code#keypath
-                            .right
-                                button.main#share(
-                                    disabled=true
-                                    tabindex="-1"
-                                        data-content-transition
-                                )
-                                    span.content-old Share
-                                    span.content-new.is-hidden
+                        .file-container__nav
+                            .side
+                                button.main.main--sm#reveal_goback(data-ui-group="reveal-form-files")
+                                    include ./icons/Chevron_Left.svg
+                            .side.center
+                                | ID:
+                                .copy-input-wrapper#vaultid-copy-input-wrapper
+                                    input.compact(name="vaultid-copy-input" type="text" readonly)
+                                    button.compact(type="button" aria-label="Copy Vault ID")
+                                        include ./icons/Copy.svg
+                            .side.right
+                                button.main.main--sm#share(data-ui-group="reveal-form-files")
+                                    include ./icons/Share_Android.svg
 
                         .file-container#files_container.scrollable
+                            .file-container__panel#files_container_panel
+                                .group.group__search
+                                    input.compact#files_search(
+                                        type="text" placeholder="Search by filename..."
+                                        data-ui-group="reveal-form-files"
+                                        disabled=true tabindex="-1"
+                                    )
+                                .group.group__other
+                                    select.compact#files_sortby(
+                                        name="Sort by"
+                                        data-ui-group="reveal-form-files"
+                                        disabled=true tabindex="-1"
+                                    ) 
+                                        option(value="fn_asc") Filename (A-Z)
+                                        option(value="fn_des") Filename (Z-A)
+                                        option(value="fs_asc") Size (Asc)
+                                        option(value="fs_des") Size (Desc)
+                                    .radio.compact
+                                        div.radio-input
+                                            input#files_fl_rows(data-ui-group="reveal-form-files" name="files_layout" type="radio" disabled=true tabindex="-1")
+                                            label(for="files_fl_rows")
+                                                include ./icons/Text_Align_Justify.svg
+                                        div.radio-input
+                                            input#files_fl_table(data-ui-group="reveal-form-files" name="files_layout" type="radio" disabled=true tabindex="-1" checked)
+                                            label(for="files_fl_table")
+                                                include ./icons/Table.svg
+                                        div.radio-input
+                                            input#files_fl_grid(data-ui-group="reveal-form-files" name="files_layout" type="radio" disabled=true tabindex="-1")
+                                            label(for="files_fl_grid")
+                                                include ./icons/Grid.svg
+
+                                    button.compact#files_download_all(data-content-transition data-ui-group="reveal-form-files" disabled=true tabindex="-1")
+                                        span.content-old Download all
+                                        span.content-new.is-hidden
+
+                            .file-container__grid#files_container_grid.--table
 
                 .form-wrapper.login-block
                     form#auth
                         h1 Enter Passcode
                         h2 to use this application
                         .input-grp
-                            input#passcode.main.error_animation(type="password" placeholder="Passcode")
-                            button#passcode_btn.main(type="submit" data-wavy) Enter
+                            input#passcode.main.error_animation(data-ui-group="login-form" type="password" placeholder="Passcode")
+                            button#passcode_btn.main(data-ui-group="login-form" type="submit" data-wavy) Enter
                         small.error X
 
             .background #[canvas#nebulaCanvas]

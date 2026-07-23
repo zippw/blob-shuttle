@@ -1,8 +1,8 @@
-import { createSessionInviteToken } from './invite';
+import { generateInviteHash } from './invite';
 import { sessionStorage, getInviteData } from './session';
 import { generateVaultId } from './vaultid';
 
-import { GET_URL_EXPTIME_SEC, PUT_URL_EXPTIME_SEC } from '#shared/constants.js';
+import { GET_URL_EXPTIME_SEC, INVITE_LIFETIME_SEC, PUT_URL_EXPTIME_SEC } from '#shared/constants.js';
 import {
     assertCheckAuthArgs, assertCreateVaultArgs, assertRevealVaultArgs, assertCreateInviteArgs,
     assertCreateVaultResult, assertRevealVaultResult
@@ -11,15 +11,16 @@ import { CheckAuthResult, CreateInviteResult, CreateVaultResult, FunctionHandler
 import { ApiError } from '#shared/ApiError.js';
 
 /* file system */
-import FileSystemWrapper from './infrastructure/drivers/storage';
+import FileSystemWrapper from './infrastructure/drivers/storage/';
 let fswrapper = new FileSystemWrapper();
 
 
 export const checkAuth: FunctionHandler = async (req) => {
     const store = sessionStorage.getStore();
     const cache_allowed = store?.session.cache_allowed || false;
+    const invite_vault_id = store?.invite.is_valid ? store?.invite.vault_id : undefined
 
-    const result: CheckAuthResult = { cache_allowed }
+    const result: CheckAuthResult = { cache_allowed, invite_vault_id }
     return { status: 200, body: result }
 }
 
@@ -68,7 +69,15 @@ export const revealVault: FunctionHandler = async (req) => {
 export const createInvite: FunctionHandler = async (req) => {
     const { vault_id } = assertCreateInviteArgs(req.body);
 
-    const hash = createSessionInviteToken(vault_id);
-    const result: CreateInviteResult = { hash }
+    const store = sessionStorage.getStore();
+    const expires_at = Date.now() + INVITE_LIFETIME_SEC * 1000;
+
+    let authorized_hash;
+    if (store && typeof store.session.passcode === 'string') authorized_hash
+        = generateInviteHash({ vault_id, expires_at, passcode: store.session.passcode });
+
+    const hash = generateInviteHash({ vault_id, expires_at });
+
+    const result: CreateInviteResult = { hash, authorized_hash }
     return { status: 200, body: result }
 }

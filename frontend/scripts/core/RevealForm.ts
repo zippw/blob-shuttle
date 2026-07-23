@@ -1,29 +1,40 @@
-// forms/RevealForm.ts
 import { AuthService } from "../AuthService";
-import ShareInvite from "../components/ShareInvite";
 import { updateActiveForm } from "../main";
-import { formatBytes } from "@shared/utils";
 import { BaseForm } from "./base";
-import { delay } from "../utils/time";
-import { escapeHtml } from "../utils/dom";
-
-import PinCodeInput from "../components/PinCodeInput";
-
-import { ApiError } from "@shared/ApiError";
 import ClientApi from "../ClientApi";
 
+import { ApiError } from "@shared/ApiError";
 import { validateVaultId } from '@shared/validators';
 
-declare function getClass(filename: string, options?: any): Promise<string | null>;
+import ShareInvite from "../components/ShareInvite";
+import PinCodeInput from "../components/PinCodeInput";
+import FilesContainer from "../components/FilesContainer";
+import CopyInput from "../components/CopyInput";
+import UIGroup from "../components/UIGroup";
+
+import { delay } from "../utils/time";
+import { setQueryParam } from "../utils/dom";
+
 
 export default class RevealForm extends BaseForm {
     private readonly input: PinCodeInput;
-    private readonly filesContainer: HTMLElement;
     private readonly errorEl: HTMLElement;
-    private readonly pathEl: HTMLSpanElement;
+    private readonly copyVaultidInput: CopyInput;
+    private readonly filesContainer: FilesContainer;
+
+    private readonly gobackBtn: HTMLButtonElement;
+    private readonly shareBtn: HTMLButtonElement;
+
+    private uiGroupEntrance: UIGroup;
+    private uiGroupFiles: UIGroup;
+
+    private _isFilesContainerOpened: boolean = false;
 
     constructor() {
         super();
+
+        this.shareBtn = document.getElementById('share') as HTMLButtonElement;
+        new ShareInvite(this.shareBtn);
 
         this.input = new PinCodeInput(document.getElementById('vault_id_pincodeinput'), {
             length: 6,
@@ -32,14 +43,34 @@ export default class RevealForm extends BaseForm {
             onComplete: (code) => { this.onFullFilled(code); }
         });
 
+        this.uiGroupEntrance = new UIGroup('reveal-form-entrance');
+        this.uiGroupFiles = new UIGroup('reveal-form-files', { dynamicGroupElements: true });
+
+        this.filesContainer = new FilesContainer();
+
+        this.gobackBtn = document.getElementById('reveal_goback') as HTMLButtonElement;
         this.formEl = document.getElementById('reveal') as HTMLFormElement;
-        this.filesContainer = document.getElementById('files_container') as HTMLElement;
-        this.pathEl = this.filesContainer.parentElement.querySelector('.nav #keypath') as HTMLSpanElement;
+        this.copyVaultidInput = new CopyInput(document.getElementById('vaultid-copy-input-wrapper'));
         this.errorEl = this.formEl.querySelector('small.error') as HTMLElement;
 
         console.debug('[RevealForm] Init');
         this.bind();
         if (ShareInvite.current_vault_id) this.autoFill();
+    }
+
+    private set fileContainerOpen(toExpand: boolean) {
+        this._isFilesContainerOpened = toExpand;
+        this.filesContainer.el.parentElement.classList.toggle('expanded', toExpand);
+
+        if (!toExpand) {
+            ShareInvite.current_vault_id = undefined;
+            setQueryParam('invite', null);
+            this.input.value = '';
+            this.isBusy = false;
+        }
+
+        this.uiGroupEntrance.disableAll(toExpand);
+        this.uiGroupFiles.disableAll(!toExpand);
     }
 
     public get ac() {
@@ -48,13 +79,9 @@ export default class RevealForm extends BaseForm {
 
         return {
             hasFocusedEls,
-            hasFileListRendered: this.isExpanded,
+            hasFileListRendered: this._isFilesContainerOpened,
             isBusy: this.isBusy
         };
-    }
-
-    private get isExpanded(): boolean {
-        return this.filesContainer.parentElement.classList.contains('expanded');
     }
 
 
@@ -73,10 +100,12 @@ export default class RevealForm extends BaseForm {
 
     protected onStateUpdate(): void {
         console.debug(`[RevealForm] updating layout state. isBusy=${this._isBusy}`);
-        this.input.disabled = this._isBusy || this.isExpanded;
+        this.uiGroupEntrance.disableAll(this._isBusy || this._isFilesContainerOpened);
     }
 
     public bind() {
+        this.gobackBtn.addEventListener('click', () => { this.fileContainerOpen = false });
+
         document.addEventListener('vault:uploaded', async (e: Event) => {
             const { vault_id } = (e as CustomEvent).detail;
             console.debug(`[RevealForm] vault:uploaded vault_id=${vault_id}`);
@@ -89,12 +118,10 @@ export default class RevealForm extends BaseForm {
         });
     }
 
-
     private async onFullFilled(vault_id: string) {
         console.debug(`[RevealForm] Full code entered. Requesting S3 file list for vault=${vault_id}`);
 
         this.isBusy = true; // all lines above affects priority
-        // this.filesContainer.parentElement.classList.remove('expanded');
         this.formEl.classList.remove('error');
         updateActiveForm();
 
@@ -102,25 +129,12 @@ export default class RevealForm extends BaseForm {
             const files = await ClientApi.revealVault({ vault_id, auth: await AuthService.getAuth() });
             console.debug(`[RevealForm] Successfully received ${files.length} links from S3.`);
 
-            this.filesContainer.innerHTML = '';
-            const cardPromises = files.map(async (file: { url: string; name: string; size: number }) => {
-                const iconClass = await getClass(file.name, { color: true }) || 'default-icon';
-
-                return `<a class="file" href="${file.url}" target="_blank" download="${file.name}">
-                    <div class="name">
-                        <span class="file-icon ${iconClass}"></span>
-                        <span>${escapeHtml(file.name)}</span>
-                    </div>
-                    <div class="size">${formatBytes(file.size, 1)}</div>
-                </a>`;
-            });
-
-            const allCardsHtmlArray = await Promise.all(cardPromises);
-            this.filesContainer.innerHTML = allCardsHtmlArray.join('');
+            this.filesContainer.files = files;
 
             ShareInvite.current_vault_id = vault_id;
-            this.pathEl.innerText = `Vault ID: ${vault_id}`;
-            this.filesContainer.parentElement.classList.add('expanded');
+            this.copyVaultidInput.setValue(vault_id);
+
+            this.fileContainerOpen = true;
         } catch (error) {
             console.error(error);
 

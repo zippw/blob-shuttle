@@ -11,10 +11,13 @@ import FileInput from "../components/FileInput";
 import { ApiError } from "@shared/ApiError";
 import { MAX_FILE_COUNT, MAX_FILE_SIZE } from "@shared/constants";
 import { validateMimeType } from "@shared/validators";
+import UIGroup from "../components/UIGroup";
 
 export default class CreateForm extends BaseForm {
     private readonly uploadFileBtn: HTMLButtonElement;
     private readonly formErrorEl: HTMLElement;
+
+    private uiGroup: UIGroup;
 
     public input: FileInput;
 
@@ -38,6 +41,8 @@ export default class CreateForm extends BaseForm {
                 this.updateFormState();
             }
         });
+
+        this.uiGroup = new UIGroup('create-form');
 
         console.debug('[CreateForm] Components mapped successfully. Initializing core layout hooks...');
 
@@ -66,8 +71,9 @@ export default class CreateForm extends BaseForm {
     protected onStateUpdate(): void {
         console.debug(`[CreateForm] updating upload UI states. isBusy=${this._isBusy}, valid=${this.input.inputValidation.ok}`);
 
-        this.uploadFileBtn.disabled = this._isBusy || !this.input.inputValidation.ok;
-        this.input.inputEl.disabled = this._isBusy;
+        this.uiGroup.disableAll(this._isBusy, {
+            'create-form-upload-btn': this._isBusy || !this.input.inputValidation.ok
+        });
     }
 
 
@@ -83,13 +89,14 @@ export default class CreateForm extends BaseForm {
 
         console.debug(`[CreateForm] Initiating upload pipeline for Vault context: ${ShareInvite.current_vault_id || 'NEW_VAULT'}`);
         // /create-vault request with an empty vault_id generates and returns a new vault_id.
+        console.log(ShareInvite.current_vault_id);
         const vaultIdValidated = await this.uploadFiles(ShareInvite.current_vault_id);
 
         if (vaultIdValidated && typeof vaultIdValidated === 'string') {
             ShareInvite.current_vault_id = vaultIdValidated;
             await delay(1000);
 
-            await changeBtnContent(this.uploadFileBtn, `Uploaded to ${vaultIdValidated}`);
+            await changeBtnContent(this.uploadFileBtn, `Uploaded.`);
 
             document.dispatchEvent(new CustomEvent('vault:uploaded', { detail: { vault_id: vaultIdValidated } }));
             updateActiveForm();
@@ -119,7 +126,7 @@ export default class CreateForm extends BaseForm {
                     if (!e.lengthComputable) return;
                     loaded_bytes[i] = e.loaded;
                     const perc = loaded_bytes.reduce((acc, x) => acc + x, 0) / total_bytes;
-                    setProgress(perc);
+                    setProgress(perc, 'upload_btn_progress_ring');
                 };
 
                 xhr.open('PUT', urls[file.name]);
@@ -167,12 +174,13 @@ export default class CreateForm extends BaseForm {
                 const expiresSec = Number(urlObj.searchParams.get('X-Amz-Expires') || 0);
 
                 if (expiresSec > 0 && expiresSec < 60) {
+                    // TODO: notify
                     console.warn(`[CreateForm] CRITICAL: Pre-signed signature life cycle is under 1 minute (${expiresSec}s). Network congestion might drop connections.`);
                 }
             }
 
-            await changeBtnContent(this.uploadFileBtn, 'Uploading... <div class="progress-ring"></div>');
-            setProgress(0);
+            await changeBtnContent(this.uploadFileBtn, 'Uploading... <div id="upload_btn_progress_ring" class="progress-ring"></div>');
+            setProgress(0, 'upload_btn_progress_ring');
 
             await delay(1000);
 

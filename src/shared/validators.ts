@@ -199,10 +199,19 @@ export const assertCreateVaultResult = (response: unknown): CreateVaultResult =>
 
 export const assertCheckAuthResult = (response: unknown): CheckAuthResult => {
     if (!isObject(response)) throw ValidationError('Invalid response format.', 'CheckAuth response must be a valid object.');
+
     if (typeof response.cache_allowed !== 'boolean')
         throw ValidationError('Invalid response data.', `cache_allowed state layout missing or unmapped. cache_allowed=${response.cache_allowed}`);
 
-    return { cache_allowed: response.cache_allowed };
+    let result: CheckAuthResult = {
+        cache_allowed: response.cache_allowed
+    };
+
+    if ('invite_vault_id' in response && typeof response.invite_vault_id === 'string') {
+        result.invite_vault_id = validateVaultId(response.invite_vault_id);
+    }
+
+    return result
 };
 
 export const assertCreateInviteResult = (response: unknown): CreateInviteResult => {
@@ -211,5 +220,13 @@ export const assertCreateInviteResult = (response: unknown): CreateInviteResult 
     if (!('hash' in response) || typeof response.hash !== 'string' || response.hash.length === 0)
         throw ValidationError('Invalid response data.', 'Missing valid hash.');
 
-    return { hash: response.hash };
+    let result: CreateInviteResult = { hash: response.hash }
+    if ('authorized_hash' in response) {
+        if (typeof response.authorized_hash !== 'string')
+            throw ValidationError('Invalid response data.', 'Invalid authorized hash.');
+
+        result.authorized_hash = response.authorized_hash;
+    }
+
+    return result;
 };

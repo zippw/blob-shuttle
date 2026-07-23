@@ -41,12 +41,12 @@ export type CreateVaultResult = {
 
 /* ?path=check-auth */
 export interface CheckAuthArgs extends AuthorizedRequest { }
-export type CheckAuthResult = { cache_allowed: boolean; }
+export type CheckAuthResult = { cache_allowed: boolean; invite_vault_id?: string }
 
 
 /* ?path=create-invite */
 export interface CreateInviteArgs extends AuthorizedRequest { vault_id: string; }
-export type CreateInviteResult = { hash: string };
+export type CreateInviteResult = { hash: string, authorized_hash?: string };
 
 
 

@@ -8,17 +8,3 @@ dist
 /src/views/**/*
 project.md
 /storage/
-
-
-
-# frontend/
-# src/static/
-# src/views/
-
-# frontend/styles/
-# src/static/
-# src/infrastructure
-
-# frontend/scripts/components
-# frontend/scripts/core
-# frontend/scripts/utils

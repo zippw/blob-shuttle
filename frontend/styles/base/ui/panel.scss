@@ -1,0 +1,146 @@
+@use "sass:color";
+@use "../../vars/colors.scss" as *;
+@use '../../utils/custom-input.scss' as *;
+
+$compact-height: 2rem;
+$compact-radius: .4rem;
+$compact-border: $bg;
+$compact-transition: .12s ease;
+
+.compact {
+    height: $compact-height;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+
+    padding: 0 .7rem;
+
+    background: $bg_dark;
+    color: $muted;
+
+    border: 1px solid $compact-border;
+    border-radius: $compact-radius;
+
+    font-size: .8rem;
+    line-height: 1;
+    outline: 0;
+
+    transition:
+        border-color $compact-transition,
+        background-color $compact-transition,
+        color $compact-transition;
+
+
+    &:not(:disabled):hover {
+        border-color: $transparentize_muted_50;
+    }
+
+    &:focus-visible {
+        border-color: $transparentize_muted_50;
+    }
+
+
+    &:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+    }
+}
+
+input.compact {
+    justify-content: flex-start;
+
+    &::placeholder {
+        color: $muted;
+    }
+}
+
+button.compact {
+    cursor: pointer;
+    flex-shrink: 0;
+
+    svg {
+        width: .9rem;
+        height: .9rem;
+    }
+
+    &:active {
+        background: $bg;
+        transition: 0s;
+    }
+
+    &:disabled {
+        color: $muted;
+
+        * {
+            color: inherit;
+        }
+    }
+}
+
+select.compact {
+    appearance: none;
+
+    padding-right: 2rem;
+    $rgb-color: "rgb(#{color.channel($muted, 'red')}, #{color.channel($muted, 'green')}, #{color.channel($muted, 'blue')})";
+    background-image: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#{$rgb-color}"/></svg>') !important;
+
+    background-repeat: no-repeat;
+    background-position: right .45rem center;
+    background-size: .95rem;
+}
+
+.radio.compact {
+    gap: 2px;
+    padding: 2px;
+
+    .radio-input {
+        display: contents;
+    }
+
+    input {
+        appearance: none;
+        position: absolute;
+        opacity: 0;
+
+        @include tabindex-safe-hidden-input();
+
+        &:checked+label {
+            background: $bg_light;
+            color: $text;
+        }
+
+        &:focus-visible+label {
+            outline: 1px solid $transparentize_muted_50;
+            outline-offset: -1px;
+        }
+    }
+
+    label {
+        width: 1.6rem;
+        height: calc($compact-height - 6px);
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: calc($compact-radius - 2px);
+
+        cursor: pointer;
+
+        transition:
+            background-color $compact-transition,
+            color $compact-transition;
+
+        &:hover {
+            background: $bg_light;
+            color: $text;
+        }
+
+        svg {
+            width: .95rem;
+            height: .95rem;
+        }
+    }
+}

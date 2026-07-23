@@ -43,11 +43,6 @@ let forms: BaseForm[] = [];
  * Initializes target application forms once session clearance is confirmed
  */
 function initializeApp(): void {
-    new ShareInvite(
-        document.getElementById('share') as HTMLButtonElement,
-        document.body.getAttribute('data-vault-id')
-    );
-
     const cf = new CreateForm();
     forms = [cf, new RevealForm()];
     checkSharedFiles().then((files) => {
@@ -66,19 +61,8 @@ function initializeApp(): void {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Global action trigger to generate secure sharing layout tokens
-
-
     document.addEventListener('focusin', () => updateActiveForm());
     document.addEventListener('focusout', () => updateActiveForm());
-
-    // Check if the server pre-authorized the session view markup on cold render
-    const isServerAuthorized = document.body.classList.contains('authorized');
-
-    if (isServerAuthorized) {
-        initializeApp();
-        return;
-    }
 
     // Launch standalone blocker modal if manual password validation is required
     await AuthService.init();
@@ -104,7 +88,8 @@ const getPriority = (form: BaseForm, i: number) => {
 };
 
 export const updateActiveForm = () => {
-    const priorities = forms.map(getPriority);
+    let priorities = forms.map(getPriority);
+    if (forms[0]?.ac.hasFilesChosen && forms[1]?.ac.isBusy) priorities = [0, 0];
     const max = Math.max(...priorities);
     forms.forEach((form, i) => {
         formWrapperEls[i].classList.toggle('active', priorities[i] === max && max > 0);

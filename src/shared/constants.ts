@@ -5,6 +5,7 @@ export const GET_URL_EXPTIME_SEC: number = 60;
 export const MAX_BUCKET_SIZE: number = 1024 * 1024 * 1024 // 1 GiB (in bytes)
 export const MAX_FILE_SIZE: number = 1024 * 1024 * 50
 export const MAX_FILE_COUNT: number = Math.floor(MAX_BUCKET_SIZE / MAX_FILE_SIZE);
+export const INVITE_LIFETIME_SEC: number = 60 * 60;
 
 /**
  * HOST_SPA: if true, the backend serves the frontend (HTML, static assets) itself using the same endpoint and queries

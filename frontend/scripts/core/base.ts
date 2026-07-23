@@ -37,11 +37,6 @@ export abstract class BaseForm {
     public updateFormState(): void {
         if (!this.formEl) return;
 
-        const inputs = this.formEl.querySelectorAll('input, textarea, select');
-        inputs.forEach(input => {
-            (input as HTMLInputElement).disabled = this._isBusy;
-        });
-
         this.onStateUpdate();
         updateActiveForm();
     }

@@ -1,7 +1,6 @@
 
 import * as crypto from 'crypto';
 import { validateVaultId, isObject, validateTimestamp } from '#shared/validators.js';
-import { sessionStorage } from './session';
 import { RequestQuery } from '#shared/schema.js';
 
 const ENCRYPTION_SECRET = process.env.ENCRYPTION_KEY;
@@ -75,17 +74,6 @@ export function generateInviteHash(payload: InvitePayload): string {
     const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
     return Buffer.concat([iv, tag, encrypted]).toString('base64url');
-}
-
-export function createSessionInviteToken(targetVaultId: string): string {
-    const store = sessionStorage.getStore();
-    const expires_at = Date.now() + (60 * 60 * 1000);
-
-    const passcode = store && typeof store.session.passcode === 'string'
-        ? store.session.passcode
-        : undefined;
-
-    return generateInviteHash({ vault_id: targetVaultId, expires_at, passcode });
 }
 
 

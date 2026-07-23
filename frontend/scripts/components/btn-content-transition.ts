@@ -7,6 +7,7 @@ export const changeBtnContent = async function (
     const newSpan = btn.querySelector('.content-new') as HTMLElement;
 
     if (!oldSpan || !newSpan) return;
+    if (oldSpan.innerHTML === content) return;
 
     btn.setAttribute('data-content-transition', '');
 
