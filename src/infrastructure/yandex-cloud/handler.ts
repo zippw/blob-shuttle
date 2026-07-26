@@ -10,11 +10,32 @@ import { ValidationError } from "#shared/validators.js";
 import { Request } from "#shared/schema.js";
 import { fn } from '../../index';
 
+const rateLimit = async (context: Context) => {
+    /* rate limitting */
+    const MAX_RPM: number = 40; // RPM > MAX_RPM -> disableFunction
+    if (process.env.NODE_ENV !== 'development') await setup_rpm(context, MAX_RPM);
+}
 
-export const handler: Handler.Http = async (event, context) => {
+export const handler = async (event: Http.Event, context: Context): Promise<Http.Result> => {
     try {
         const method = event.httpMethod;
         const query = event.queryStringParameters || {};
+
+        if (event.httpMethod === 'OPTIONS') {
+            await rateLimit(context);
+
+            return {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Max-Age': '86400'
+                },
+                isBase64Encoded: false,
+                body: ''
+            }
+        }
 
         /* request object formation */
         const req: Request = method === 'GET'
@@ -24,13 +45,12 @@ export const handler: Handler.Http = async (event, context) => {
         /* optional middleware */
         // TODO: implement next() function
         req.middleware = async () => {
-            /* rate limitting */
-            const MAX_RPM: number = 40; // RPM > MAX_RPM -> disableFunction
-            if (process.env.NODE_ENV !== 'development') await setup_rpm(context, MAX_RPM);
+            await rateLimit(context);
         }
 
         /* API response */
         const res = await fn(req);
+
 
         /* yc serverless functions response object formation */
         return {
@@ -39,7 +59,10 @@ export const handler: Handler.Http = async (event, context) => {
                 ? res.body
                 : JSON.stringify(res.body),
             isBase64Encoded: res.isBase64Encoded,
-            headers: res.headers
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                ...res.headers
+            }
         }
     } catch (error) {
         console.error(error);

@@ -19,8 +19,11 @@ export async function initStorage(): Promise<BaseFileSystemWrapper> {
     const DEFAULT_DRIVER = './infrastructure/drivers/storage/s3.js';
     const driverPath = cfg.storage?.driverPath || DEFAULT_DRIVER;
 
-    const module = await import(driverPath);
-    const DriverClass = module.default || module;
+    // const module = await import(driverPath);
+    // const DriverClass = module.default || module;
+    // return new DriverClass();
+    const DriverClass = require(driverPath)?.default || require(driverPath);
+    
     return new DriverClass();
 }
 

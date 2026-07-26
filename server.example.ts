@@ -1,5 +1,6 @@
 import express from 'express';
 import { handler } from './src/infrastructure/yandex-cloud/handler';
+// const { handler } = require('./dist/infrastructure/yandex-cloud/handler');
 
 const app = express();
 const PORT = process.env.PORT || '8080';
