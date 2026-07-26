@@ -5,11 +5,11 @@ import { setProgress } from "../components/progress-ring";
 import { changeBtnContent } from "../components/btn-content-transition";
 
 import { AuthService } from "../AuthService";
-import ShareInvite from "../components/ShareInvite";
+import ShareInvite from "./ShareInvite";
 import ClientApi from "../ClientApi";
 import FileInput from "../components/FileInput";
 import { ApiError } from "@shared/ApiError";
-import { MAX_FILE_COUNT, MAX_FILE_SIZE } from "@shared/constants";
+import cfg from '@config/config';
 import { validateMimeType } from "@shared/validators";
 import UIGroup from "../components/UIGroup";
 
@@ -31,8 +31,8 @@ export default class CreateForm extends BaseForm {
         this.input = new FileInput(
             document.getElementById('files_input'),
             document.getElementById('files_dropzone'), {
-            maxFileSize: MAX_FILE_SIZE,
-            maxFileCount: MAX_FILE_COUNT,
+            maxFileSize: cfg.options.maxFileSize,
+            maxFileCount: cfg.options.maxFileCountPerUpload,
             onFileDragging: () => { updateActiveForm(); },
             onFileChange: () => { updateActiveForm(); },
             onFileChosen: () => {

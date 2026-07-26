@@ -16,16 +16,11 @@ export const INVITE_LIFETIME_SEC: number = 60 * 60;
  * 
  * When HOST_SPA=true (default):
  *   - GET /?path=static&file=... serves assets from /src/static/
- *   - GET / serves index.html from ./views/
+ *   - GET /                      serves index.html from ./views/
+ *   - (!) You have to specify API_URL .env before build
  * 
  * When HOST_SPA=false:
- *   - Only POST endpoints work. You serve index.html + sw.js + icons yourself in just 1 folder
+ *   - Only POST endpoints work. You serve index.html + sw.js + icons yourself in just 1 folder (/docs will be generated after build)
  *   - Files must live together in the root and have the same name as in src/static/.
+ *   - (!) You have to specify STATIC_URL and API_URL .env before build
  */
-export const HOST_SPA: boolean = true;
-
-/**
- * Cache-Control header for static assets (HTML, JS, icons, manifest).
- * Set to undefined to disable caching entirely.
- */
-export const STATIC_CACHE_CONTROL: string | undefined = 'public, max-age=86400';

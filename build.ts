@@ -7,6 +7,8 @@ import sass from 'sass';
 import { config } from 'dotenv';
 config();
 
+import cfg from './src/config/config.js';
+
 const assetCache = new Map<string, string>();
 let outputDir = 'src/views';
 const entry = {
@@ -49,7 +51,6 @@ const buildScripts = async () => {
     return Date.now() - start;
 };
 
-import * as consts from '#shared/constants.js';
 import { formatBytes } from '#shared/utils.js';
 
 const buildTemplates = () => {
@@ -71,8 +72,16 @@ const buildTemplates = () => {
     });
 
     const html = compiled({
-        consts, env: process.env,
-        formatted: { MAX_FILE_SIZE: formatBytes(consts.MAX_FILE_SIZE) }
+        consts: {
+            MAX_PASSCODE_LENGTH: cfg.options.maxPasscodeLength,
+            MAX_FILE_SIZE: cfg.options.maxFileSize,
+            MAX_FILE_COUNT: cfg.options.maxFileCountPerUpload,
+            INVITE_LIFETIME_SEC: cfg.options.inviteURLLifetime,
+
+            FUNCTION_URL: cfg.apiUrl,
+            STATIC_URL: cfg.staticUrl,
+            HOST_SPA: cfg.mode === 'spa',
+        }, formatted: { MAX_FILE_SIZE: formatBytes(cfg.options.maxFileSize) },
     });
 
     const outPath = path.join(outputDir, 'index.html');
@@ -177,6 +186,17 @@ const mode = args.includes('--watch') ? 'watch' : 'build';
 
         outputDir = 'dist/views';
         await build();
+
+
+        /* HOST_SPA=false static build */
+        fs.rmSync('docs', { recursive: true, force: true });
+        fs.mkdirSync('docs');
+
+        fs.cpSync('dist/views/index.html', 'docs/index.html');
+        fs.cpSync('dist/static', 'docs', { recursive: true });
+
+        console.log(`${blue}static build ready${reset} ${gray}docs/${reset}`);
+
     } else {
         await watch();
     }

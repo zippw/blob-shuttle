@@ -2,7 +2,6 @@ import { generateInviteHash } from './invite';
 import { sessionStorage, getInviteData } from './session';
 import { generateVaultId } from './vaultid';
 
-import { GET_URL_EXPTIME_SEC, INVITE_LIFETIME_SEC, PUT_URL_EXPTIME_SEC } from '#shared/constants.js';
 import {
     assertCheckAuthArgs, assertCreateVaultArgs, assertRevealVaultArgs, assertCreateInviteArgs,
     assertCreateVaultResult, assertRevealVaultResult
@@ -10,11 +9,23 @@ import {
 import { CheckAuthResult, CreateInviteResult, CreateVaultResult, FunctionHandler, RevealVaultResult } from '#shared/schema.js';
 import { ApiError } from '#shared/ApiError.js';
 
+import cfg from './config/config';
+
 /* file system */
-import FileSystemWrapper from './infrastructure/drivers/storage/';
-let fswrapper = new FileSystemWrapper();
+import { BaseFileSystemWrapper } from './infrastructure/drivers/storage/base';
+let fswrapper: BaseFileSystemWrapper | null = null;
+
+export async function initStorage(): Promise<BaseFileSystemWrapper> {
+    const DEFAULT_DRIVER = './infrastructure/drivers/storage/s3.js';
+    const driverPath = cfg.storage?.driverPath || DEFAULT_DRIVER;
+
+    const module = await import(driverPath);
+    const DriverClass = module.default || module;
+    return new DriverClass();
+}
 
 
+/* endpoints */
 export const checkAuth: FunctionHandler = async (req) => {
     const store = sessionStorage.getStore();
     const cache_allowed = store?.session.cache_allowed || false;
@@ -25,6 +36,7 @@ export const checkAuth: FunctionHandler = async (req) => {
 }
 
 export const createVault: FunctionHandler = async (req) => {
+    if (fswrapper === null) fswrapper = await initStorage();
     const { files, vault_id } = assertCreateVaultArgs(req.body);
 
     const invite_hash_data = getInviteData();
@@ -36,7 +48,7 @@ export const createVault: FunctionHandler = async (req) => {
     const url = await fswrapper.getUploadFileURLs(files, finalVaultId, {
         expiresIn: invite_hash_data.is_valid
             ? Math.max(1, invite_hash_data.expires_in_sec)
-            : PUT_URL_EXPTIME_SEC
+            : cfg.options.uploadURLLifetime
     });
 
     /* output validation */
@@ -45,6 +57,7 @@ export const createVault: FunctionHandler = async (req) => {
 }
 
 export const revealVault: FunctionHandler = async (req) => {
+    if (fswrapper === null) fswrapper = await initStorage();
     const { vault_id } = assertRevealVaultArgs(req.body);
     const invite_hash_data = getInviteData();
 
@@ -58,7 +71,7 @@ export const revealVault: FunctionHandler = async (req) => {
     const files = await fswrapper.getFiles(vault_id, {
         expiresIn: invite_hash_data.is_valid
             ? Math.max(1, invite_hash_data.expires_in_sec)
-            : GET_URL_EXPTIME_SEC
+            : cfg.options.readURLLifetime
     });
 
     /* output validation */
@@ -70,7 +83,7 @@ export const createInvite: FunctionHandler = async (req) => {
     const { vault_id } = assertCreateInviteArgs(req.body);
 
     const store = sessionStorage.getStore();
-    const expires_at = Date.now() + INVITE_LIFETIME_SEC * 1000;
+    const expires_at = Date.now() + cfg.options.inviteURLLifetime * 1000;
 
     let authorized_hash;
     if (store && typeof store.session.passcode === 'string') authorized_hash

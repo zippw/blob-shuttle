@@ -3,7 +3,7 @@ import {
     RevealVaultArgs, CreateInviteArgs, CreateVaultArgs, CheckAuthArgs,
     RevealVaultResult, CreateInviteResult, CreateVaultResult, CheckAuthResult
 } from './schema';
-import { MAX_BUCKET_SIZE, MAX_FILE_COUNT, MAX_FILE_SIZE, MAX_PASSCODE_LENGTH } from './constants';
+import cfg from '../config/config';
 import { ApiError } from './ApiError';
 
 export const ValidationError = (message: string, details?: string) => new ApiError({
@@ -24,8 +24,8 @@ export const validatePasscode = (passcode: unknown): string => {
     if (typeof passcode !== 'string' || passcode.length === 0)
         throw ValidationError('Invalid passcode.', `Passcode must be a non-empty string. passcode=${passcode}`);
 
-    if (passcode.length > MAX_PASSCODE_LENGTH)
-        throw ValidationError('Invalid passcode.', `Passcode is too big (>${MAX_PASSCODE_LENGTH}). passcode.length=${passcode.length}`);
+    if (passcode.length > cfg.options.maxPasscodeLength)
+        throw ValidationError('Invalid passcode.', `Passcode is too big (>${cfg.options.maxPasscodeLength}). passcode.length=${passcode.length}`);
 
     return passcode;
 }
@@ -47,7 +47,7 @@ export const validateFileSize = (size: unknown): number => {
     if (typeof size !== 'number' || size <= 0)
         throw ValidationError('Invalid file size.');
 
-    if (size > MAX_FILE_SIZE) throw ValidationError('File is too big.');
+    if (size > cfg.options.maxFileSize) throw ValidationError('File is too big.');
 
     return size;
 }
@@ -126,7 +126,7 @@ export const assertCreateVaultArgs = (body: unknown): CreateVaultArgs => {
     if ('files' in body) {
         if (!Array.isArray(body.files)) throw ValidationError('Invalid file list.', 'No valid file list provided.');
         if (!body.files.length) throw ValidationError('File list is empty.', 'File list length is 0.');
-        if (body.files.length > MAX_FILE_COUNT) throw ValidationError('Too many files.', `len=${body.files.length}/${MAX_FILE_COUNT}`);
+        if (body.files.length > cfg.options.maxFileCountPerUpload) throw ValidationError('Too many files.', `len=${body.files.length}/${cfg.options.maxFileCountPerUpload}`);
 
         // we believe in yandex cloud storage size limiter.
 
@@ -138,7 +138,7 @@ export const assertCreateVaultArgs = (body: unknown): CreateVaultArgs => {
             validateFileSize(file.size);
 
             totalFileSize += file.size;
-            if (totalFileSize > MAX_BUCKET_SIZE) throw ValidationError('Total size limit exceeded.', `Total file size exceeds maximum bucket size limit. totalFileSize=${totalFileSize}/${MAX_BUCKET_SIZE}`);
+            // if (totalFileSize > MAX_BUCKET_SIZE) throw ValidationError('Total size limit exceeded.', `Total file size exceeds maximum bucket size limit. totalFileSize=${totalFileSize}/${MAX_BUCKET_SIZE}`);
 
             validatedFiles.push({ name: file.name, size: file.size });
         }

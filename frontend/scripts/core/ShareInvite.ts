@@ -2,10 +2,10 @@ import { copyToClipboard } from "../utils/dom";
 import ClientApi from "../ClientApi";
 import { AuthService } from "../AuthService";
 import { toCanvas } from 'qrcode';
-import UIGroup from "./UIGroup";
-import { INVITE_LIFETIME_SEC } from "#shared/constants.js";
-import TimestampElement from "./TimestampElement";
-import CopyInput from "./CopyInput";
+import UIGroup from "../components/UIGroup";
+import cfg from '@config/config';
+import TimestampElement from "../components/TimestampElement";
+import CopyInput from "../components/CopyInput";
 
 interface inviteUrl {
     default: string;
@@ -60,7 +60,7 @@ export default class ShareInvite {
         const vault_id = ShareInvite.current_vault_id;
         const url = await ShareInvite.getUrl(vault_id);
         ShareInvite.cache = {
-            vault_id, url, valid_until: Date.now() + INVITE_LIFETIME_SEC * 1000
+            vault_id, url, valid_until: Date.now() + cfg.options.inviteURLLifetime * 1000
         };
     }
 

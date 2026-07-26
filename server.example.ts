@@ -31,7 +31,7 @@ app.all('/files', async (req, res) => {
 
 
 /* custom wrapper/filesystem example (local storage) */
-import { storageRouter } from './src/infrastructure/drivers/storage/index.example';
+import { storageRouter } from './src/infrastructure/drivers/storage/node-fs.example';
 app.use(storageRouter);
 
 

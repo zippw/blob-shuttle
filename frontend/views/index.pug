@@ -4,8 +4,8 @@
 doctype html
 html(lang="en")
     -
-        const api_url = env.NODE_ENV === 'development' ? env.DEV_FUNCTION_URL : env.FUNCTION_URL;
-        const assets_url = consts.HOST_SPA ? `${api_url}?path=static&file=` : './';
+        const api_url = consts.FUNCTION_URL;
+        const assets_url = consts.HOST_SPA ? `${api_url}?path=static&file=` : `${consts.STATIC_URL}/`;
 
 
     head
@@ -31,7 +31,7 @@ html(lang="en")
                     type: "image/png"
                 }],
                 share_target: {
-                    action: encodeURI(`${api_url}?path=share_target`),
+                    action: encodeURI(`${assets_url}?path=share_target`),
                     method: "POST",
                     enctype: "multipart/form-data",
                     params: {
@@ -168,7 +168,8 @@ html(lang="en")
 
     script.
         window.locals = {
-            api_url: '!{api_url}'
+            api_url: '!{api_url}',
+            static_url: '!{assets_url}'
         }
 
     script

@@ -4,10 +4,11 @@ import { createInvite, createVault, revealVault, checkAuth } from './routes';
 import { verifySessionAuthority } from './auth';
 import { SessionContext, sessionStorage } from './session';
 
-import * as consts from '#shared/constants.js';
 import { FunctionHandler } from '#shared/schema.js';
 import { validateFileName } from '#shared/validators.js';
 import { ApiError } from '#shared/ApiError.js';
+
+import cfg from './config/config';
 
 import path from 'node:path';
 import fs from 'node:fs';
@@ -42,7 +43,7 @@ export const fn: FunctionHandler = async (req) => {
                 if (req.middleware) await req.middleware();
 
                 /* static logic (pwa purpose) */
-                if (consts.HOST_SPA && query.path === 'static' && query.file) {
+                if (cfg.mode === 'spa' && query.path === 'static' && query.file) {
                     const fileName = validateFileName(path.basename(query.file));
                     if (!/^[a-zA-Z0-9._-]+$/.test(fileName)) throw Error('Invalid file name');
                     const filePath = path.join(__dirname, 'static', fileName);
@@ -62,8 +63,8 @@ export const fn: FunctionHandler = async (req) => {
                         isBase64Encoded: true,
                         headers: {
                             'Content-Type': contentType,
-                            ...consts.STATIC_CACHE_CONTROL
-                                ? { 'Cache-Control': consts.STATIC_CACHE_CONTROL }
+                            ...cfg.options.staticCacheControl
+                                ? { 'Cache-Control': cfg.options.staticCacheControl }
                                 : {}
                         }
                     }
@@ -71,20 +72,30 @@ export const fn: FunctionHandler = async (req) => {
 
 
                 /* main */
-                if (consts.HOST_SPA && method === 'GET') return {
-                    status: 200, body: await renderFileRuntime('./views/index.html', {
-                        self: true,
-                        consts
-                    }), headers: {
+                if (cfg.mode === 'spa' && method === 'GET') return {
+                    status: 200, body: await renderFileRuntime('./views/index.html'), headers: {
                         'Content-Type': 'text/html; charset=UTF-8',
                         'Content-Security-Policy': 'worker-src \'self\' blob: data:;',
-                        ...consts.STATIC_CACHE_CONTROL
-                            ? { 'Cache-Control': consts.STATIC_CACHE_CONTROL }
+                        ...cfg.options.staticCacheControl
+                            ? { 'Cache-Control': cfg.options.staticCacheControl }
                             : {}
                     }
                 }
 
-                if (!authorized) throw new ApiError({ error: 'Authentication failed.', details: 'Missing token or invalid credentials.', type: 'UNAUTHORIZED' });
+                if (!sessionContext.session.authorized) {
+                    if (sessionContext.invite?.is_valid && !sessionContext.session.passcode) throw new ApiError({
+                        error: 'Passcode required to access this vault',
+                        details: 'You have a valid invite, but it does not contain a passcode. Please enter your passcode to continue.',
+                        type: 'UNAUTHORIZED'
+                    });
+                    if (inviteHash && !sessionContext.invite?.is_valid) throw new ApiError({
+                        error: 'Invalid or expired invite link.',
+                        details: 'The invite link you used is no longer valid. Please request a new one or enter your passcode manually.',
+                        type: 'UNAUTHORIZED'
+                    });
+
+                    throw new ApiError({ error: 'Authentication failed.', details: 'Missing token or invalid credentials.', type: 'UNAUTHORIZED' });
+                }
 
                 // authorized endpoints
                 if (method === 'POST' && query.path === 'check-auth') return await checkAuth(req);

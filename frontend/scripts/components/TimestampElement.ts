@@ -9,7 +9,6 @@ export default class TimestampElement {
         this.el = el;
         this.locale = locale;
 
-        console.log(this.el)
         const rawTime = Number(el.getAttribute('data-timestamp')) || Date.now();
         this.targetTime = rawTime > 1e11 ? Math.floor(rawTime / 1000) : rawTime;
 
@@ -23,7 +22,6 @@ export default class TimestampElement {
 
         if (['countdown', 'R'].includes(this.type)) {
             this.timerId = window.setInterval(() => {
-                // Самоочистка, если элемент удален из DOM
                 if (!document.body.contains(this.el)) {
                     this.destroy();
                     return;

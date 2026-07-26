@@ -73,8 +73,6 @@ because
 - no rate limiting and other security stuff. Recommended using proxy or API Gateway
   brute-forcing vault_id? `62^6` combos. And still, project is for personal use.
 
-- `HOST_SPA` flag in `src/shared/constants.ts`. If set to `false`, backend becomes JSON API only - you'll need to host frontend separately. This is not the primary use case.
-
 ---
 
 
@@ -82,9 +80,9 @@ because
 ## how to install
 
 1. write infrastructure-specific function adapter (`/src/infrastructure/your-infrastructure/someentryfile`) on GET and POST endpoints.
-   The adapter is responsible for translating incoming cloud requests to the internal Request type and converting the internal Response type to the cloud response format. See `src/infrastructure/drivers/storage/index.example.ts` for a local filesystem example utilizing Express + node:fs.
-2. write your own /src/infrastructure/drivers/storage/index.ts from scratch or use finished s3 driver
-3. adjust constants in `src/shared/constants.ts`
+   The adapter is responsible for translating incoming cloud requests to the internal Request type and converting the internal Response type to the cloud response format. See `src/infrastructure/drivers/yandex-cloud/handler.ts` for an example.
+2. write your own /src/infrastructure/drivers/storage/yourdriverfile.ts from scratch or use finished s3 driver
+3. setup config in `src/config/config.ts`
 4. setup env file (don't forget to remove .example)
 5. install dependencies: `npm i`
 6. build in the correct order:
@@ -99,7 +97,7 @@ because
 2. create a service account with `storage.uploader`, `storage.viewer`, and `storage.editor` roles.
 3. generate a static access key for it.
 4. use example drivers, infrastructure wrapper
-5. adjust constants in `src/shared/constants.ts`
+5. setup config in `src/config/config.ts`
 6. setup env file (don't forget to remove .example)
 7. run `npm i`
    - terminal 1: `npm run serve` (frontend)

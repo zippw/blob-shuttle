@@ -6,7 +6,7 @@ import ClientApi from "../ClientApi";
 import { ApiError } from "@shared/ApiError";
 import { validateVaultId } from '@shared/validators';
 
-import ShareInvite from "../components/ShareInvite";
+import ShareInvite from "./ShareInvite";
 import PinCodeInput from "../components/PinCodeInput";
 import FilesContainer from "../components/FilesContainer";
 import CopyInput from "../components/CopyInput";

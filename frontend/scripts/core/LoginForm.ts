@@ -2,7 +2,7 @@ import { ApiError } from "@shared/ApiError";
 import { validatePasscode } from "@shared/validators";
 
 import { AuthService } from "../AuthService";
-import ShareInvite from "../components/ShareInvite";
+import ShareInvite from "./ShareInvite";
 import ClientApi from "../ClientApi";
 import UIGroup from "../components/UIGroup";
 import { setQueryParam } from "../utils/dom";

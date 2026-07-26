@@ -5,7 +5,6 @@ interface BaseVaultFile {
     size: number;
 }
 
-// Передаем объект с флагом. По умолчанию с url
 export type VaultFile<Config extends { withUrl: boolean } = { withUrl: true }> =
     BaseVaultFile & (Config['withUrl'] extends true ? { url: string } : { url?: string });
 

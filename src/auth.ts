@@ -3,7 +3,7 @@ import { validateServerHash } from './security';
 import { Authorization } from '#shared/schema.js';
 import { ApiError } from '#shared/ApiError.js';
 import { assertAuthorization, isObject, validateTimestamp } from '#shared/validators.js';
-import { MAX_PASSCODE_LENGTH } from '#shared/constants.js';
+import cfg from './config/config';
 
 
 function handleManualPasscode(passcode: string) {
@@ -65,7 +65,7 @@ function checkGlobalPasscode(passcode: unknown, ignoreTimestamp: boolean = false
     isLongTerm: boolean;
     isValid: boolean;
 } {
-    if (!passcode || typeof passcode !== 'string' || passcode.length > MAX_PASSCODE_LENGTH) {
+    if (!passcode || typeof passcode !== 'string' || passcode.length > cfg.options.maxPasscodeLength) {
         return { isValid: false, isLongTerm: false };
     }
 

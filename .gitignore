@@ -1,4 +1,3 @@
-frontend/dist
 node_modules
 package-lock.json
 trash
@@ -8,3 +7,4 @@ dist
 /src/views/**/*
 project.md
 /storage/
+/src/config/config.ts
