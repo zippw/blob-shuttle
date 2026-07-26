@@ -3,7 +3,6 @@ import RevealForm from "./core/RevealForm";
 import CreateForm from "./core/CreateForm";
 import { BaseForm } from "./core/base";
 import { animate, resizeCanvas, CONFIG, canvas } from "./nebula";
-import ShareInvite from "./core/ShareInvite";
 import { AuthService } from "./AuthService";
 import { registerSW, checkSharedFiles } from "./sw";
 registerSW();
