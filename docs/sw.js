@@ -28,7 +28,8 @@ self.addEventListener('fetch', (e) => {
                 }));
             }
 
-            return Response.redirect('/files', 303);
+            const redirectUrl = url.pathname || '/';
+            return Response.redirect(redirectUrl, 303);
         })());
     }
 });
